@@ -1,16 +1,17 @@
+import org.jdatepicker.impl.JDatePanelImpl;
+import org.jdatepicker.impl.JDatePickerImpl;
+import org.jdatepicker.impl.UtilDateModel;
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.event.*;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+import java.util.Properties;
 public class Home extends JFrame{
     private JTabbedPane tabbedPane1;
     private JLabel Jfirstname;
-    private JLabel form3;
     private JPanel JpanalMain;
     private JPanel page1;
     private JPanel page3;
@@ -36,21 +37,22 @@ public class Home extends JFrame{
     private JTextField pStock;
     private JLabel customerName;
     private JLabel Date;
-    private JTextField textField5;
-    private JLabel totalAmout;
-    private JTextField textField6;
+    private JTextField orderQ;
     private JButton oUpdate;
     private JTextField cusFullnameField;
     private JTextField pVolume;
-    private JTextField textField7;
-    private JTextField textField8;
-    private JTextField textField9;
+    private JTextField profitField;
+    private JTextField totalAmout;
+    private JTextField sPrice;
     private JComboBox proNameBox;
     private JComboBox cusNameBox;
     private JButton oAdd;
     private JButton oDelete;
-    private Integer k=0,id,productId;
-    private String firstname, lastname,productName,quantityInStock,price,volume;
+    private JComboBox oDetailId;
+    private JFormattedTextField formattedTextField1;
+    private Integer k=0,id,productId,orderDetailId ,quantityInStock,price,quantityOrdered,priceEach,totalAmount,profit;
+    private String firstname, lastname,productName,volume;
+  private String datePattern = "yyyy-MM-dd";
 
     PreparedStatement preparedStatement;
     Connection connection = storeConnection.connect();
@@ -199,7 +201,7 @@ public class Home extends JFrame{
                 Statement statement;
                 try {
                     statement = connection.createStatement();
-                    String sql = "SELECT id , fname as firstname , lname as lastname  ,p.productName,p.price,o.totalAmount,o.profit ,od.quantityOrdered,od.priceEach \n" +
+                    String sql = "SELECT id , fname as firstname , lname as lastname  ,od.orderDetailId,p.productName,p.price,o.totalAmount,o.profit ,od.quantityOrdered,od.priceEach \n" +
                             "FROM product p  join  orderdetail od on p.productId = od.productId\n" +
                             "right join orders o on od.orderId = o.orderId\n" +
                             "right join customer c on c.id = o.customer_id ";
@@ -225,12 +227,16 @@ public class Home extends JFrame{
                         id =  results.getInt(1);
                         firstname = results.getString(2);
                         lastname = results.getString(3);
-                        productName = results.getString(4);
-                        quantityInStock  = results.getString(5);
-                        price = results.getString(6);
-                        volume =  results.getString(7);
+                        orderDetailId = results.getInt(4);
+                        productName = results.getString(5);
+                        price = results.getInt(6);
+                        totalAmount = results.getInt(7);
+                        profit = results.getInt(8);
+                        quantityOrdered  = results.getInt(9);
+                        priceEach = results.getInt(10);
 
-                        String[] row = {String.valueOf(id),  firstname, lastname,productName,quantityInStock,price,volume};
+
+                        String[] row = {String.valueOf(id),  firstname, lastname, String.valueOf(orderDetailId),productName , String.valueOf(price), String.valueOf(totalAmount), String.valueOf(profit),String.valueOf(quantityOrdered), String.valueOf(priceEach)};
                         model.addRow(row);
                     }
          //           System.out.println( model.getRowCount());
@@ -396,17 +402,17 @@ public class Home extends JFrame{
                         //สร้างตัวแปลเพื่อมาเก็บ field
                         productId =  results.getInt(1);
                         productName = results.getString(2);
-                        quantityInStock  = results.getString(3);
-                        price = results.getString(4);
+                        quantityInStock  = results.getInt(3);
+                        price = results.getInt(4);
                         volume =  results.getString(5);
-                        String[] row = {String.valueOf(productId), productName, quantityInStock, price, volume};
+                        String[] row = {String.valueOf(productId), productName, String.valueOf(quantityInStock), String.valueOf(price), volume};
                         model.addRow(row);
                     }
                   //  System.out.println( model.getRowCount());
                     if ( model.getRowCount()==1) {
                         pName.setText(productName);
-                        pStock.setText(quantityInStock);
-                        pPrice.setText(String.valueOf(pPrice));
+                        pStock.setText(String.valueOf(quantityInStock));
+                        pPrice.setText(String.valueOf(price));
                         pVolume.setText(String.valueOf(volume));
                     }
                 }  catch (SQLException ex) {
@@ -418,13 +424,36 @@ public class Home extends JFrame{
             @Override
             public void actionPerformed(ActionEvent e) {
 
-                //get value from combobox
-                String customerName = (String) cusNameBox.getSelectedItem();
-                String productName = (String) proNameBox.getSelectedItem();
-                System.out.println(customerName);
-                System.out.println(productName);
 
+                try {
+                    if (lname.getText().isBlank()){
+                        statement = connection.createStatement();
+                        String sql = "insert into orders (orderId,totalAmount,customer_id,profit) value(?,?,?,?) ;";
+                        preparedStatement = connection.prepareStatement(sql);
+                        preparedStatement.setString(1, fname.getText());
+                        preparedStatement.setString(2, lname.getText());
+
+                        k = preparedStatement.executeUpdate();
+                    }else {k=0;}
+                    if (k==1){
+                        JOptionPane.showMessageDialog(cAdd, "Customer Added Successfully");
+                        preparedStatement=connection.prepareStatement("commit ");
+                        preparedStatement.executeUpdate();
+                        fname.setText("");
+                        lname.setText("");
+                    }else {
+                        JOptionPane.showMessageDialog(cAdd, "An error occur to add customer");
+                        preparedStatement=connection.prepareStatement("rollback ");
+                        preparedStatement.executeUpdate();
+                    }
+
+                }catch (SQLException ex) {
+                    Logger.getLogger(Home.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                k=0;
             }
+
+
         });
         oUpdate.addActionListener(new ActionListener() {
             @Override
@@ -441,25 +470,16 @@ public class Home extends JFrame{
         cusNameBox.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-//            JOptionPane.showMessageDialog(cusNameBox,"Test");
-  //                  JComboBox<String> combo = (JComboBox<String>) e.getSource();
-//                String selectedBook = (String) combo.getSelectedItem();
-//
-//                if (selectedBook.equals("ker")) {
-//                    System.out.println("Good choice!");
-//                } else if (selectedBook.equals("w")) {
-//                    System.out.println("Nice pick, too!");
-//                }
                 String name = (String) cusNameBox.getSelectedItem();
                 System.out.println(name);
                 try{
                     statement = connection.createStatement();
-                    String sqlCustomer  = "SELECT id FROM customer WHERE CONCAT(fname, ' ', lname) = ?";
+                    String sqlCustomer  = "SELECT id FROM customer WHERE CONCAT(fname, ' ', lname) =?";
                     preparedStatement = connection.prepareStatement(sqlCustomer);
                     preparedStatement.setString(1, name);
 
-                    ResultSet resultCustomerName = statement.executeQuery(sqlCustomer);
-                    System.out.println(resultCustomerName);
+                    ResultSet resultCustomerName =  preparedStatement.executeQuery();
+                 //   System.out.println(resultCustomerName);
                     while (resultCustomerName.next()){
                         //สร้างตัวแปลเพื่อมาเก็บ field
                         id =  resultCustomerName.getInt(1);
@@ -475,7 +495,26 @@ public class Home extends JFrame{
         proNameBox.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                String name = (String) proNameBox.getSelectedItem();
+                System.out.println(name);
+                try{
+                    statement = connection.createStatement();
+                    String sqlCustomer  = "SELECT productId FROM product WHERE productName =?";
+                    preparedStatement = connection.prepareStatement(sqlCustomer);
+                    preparedStatement.setString(1, name);
 
+
+                    ResultSet resultProductName =  preparedStatement.executeQuery();
+                //    System.out.println(resultProductName);
+                    while (resultProductName.next()){
+                        //สร้างตัวแปลเพื่อมาเก็บ field
+                        productId =  resultProductName.getInt(1);
+                    }
+
+                }catch (Exception ex){
+                    System.out.println(ex.getMessage()+"!!!!!");
+                }
+                System.out.println(productId + "!!!");
             }
         });
     }
@@ -522,7 +561,7 @@ public class Home extends JFrame{
         Statement statement;
         try {
             statement = connection.createStatement();
-            String sql = "SELECT id , fname as firstname , lname as lastname  ,p.productName,p.price,o.totalAmount,o.profit ,od.quantityOrdered,od.priceEach \n" +
+            String sql = "SELECT id , fname as firstname , lname as lastname, od.orderDetailId ,p.productName,p.price,o.totalAmount,o.profit ,od.quantityOrdered,od.priceEach  \n" +
                     "FROM product p  join  orderdetail od on p.productId = od.productId\n" +
                     "right join orders o on od.orderId = o.orderId\n" +
                     "right join customer c on c.id = o.customer_id where  concat(fname,\" \",lname)  like \"%"+cusFullnameField.getText()+ "%\"";
@@ -548,11 +587,15 @@ public class Home extends JFrame{
                 id =  results.getInt(1);
                 firstname = results.getString(2);
                 lastname = results.getString(3);
-                productName = results.getString(4);
-                quantityInStock  = results.getString(5);
-                price = results.getString(6);
-                volume =  results.getString(7);
-                String[] row = {String.valueOf(id),  firstname, lastname, productName, quantityInStock, price, volume};
+                orderDetailId = results.getInt(4);
+                productName = results.getString(5);
+                price = results.getInt(6);
+                totalAmount = results.getInt(7);
+                profit = results.getInt(8);
+                quantityOrdered  = results.getInt(9);
+                priceEach = results.getInt(10);
+
+                String[] row = {String.valueOf(id),  firstname, lastname, String.valueOf(orderDetailId),productName , String.valueOf(price), String.valueOf(totalAmount), String.valueOf(profit),String.valueOf(quantityOrdered), String.valueOf(priceEach)};
                 model.addRow(row);
             }
           //  System.out.println( model.getRowCount());
@@ -592,16 +635,16 @@ public class Home extends JFrame{
                 //สร้างตัวแปลเพื่อมาเก็บ field
                 productId =  results.getInt(1);
                 productName = results.getString(2);
-                quantityInStock  = results.getString(3);
-                price = results.getString(4);
+                quantityInStock  = results.getInt(3);
+                price = results.getInt(4);
                 volume =  results.getString(5);
-                String[] row = {String.valueOf(productId), productName, quantityInStock, price, volume};
+                String[] row = {String.valueOf(productId), productName, String.valueOf(quantityInStock), String.valueOf(price), volume};
                 model.addRow(row);
             }
             System.out.println( model.getRowCount());
             if ( model.getRowCount()==1) {
                 pName.setText(productName);
-                pStock.setText(quantityInStock);
+                pStock.setText(String.valueOf(quantityInStock));
                 pPrice.setText(String.valueOf(price));
                 pVolume.setText(String.valueOf(volume));
             }
@@ -610,16 +653,17 @@ public class Home extends JFrame{
         }
     }
     public static void main(String[] args) {
-
-
         Home home = new Home();
         home.LoadAllCustomerToComboBox();
         home.LoadAllProductToComboBox();
+
         home.setContentPane(home.JpanalMain);
+
         home.setTitle("Store Management");
         home.setSize(600, 600);
         home.setVisible(true);
         home.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
     }
+
 }
