@@ -1,18 +1,16 @@
-import com.toedter.calendar.JDateChooser;
-import org.jdatepicker.impl.JDatePanelImpl;
-import org.jdatepicker.impl.JDatePickerImpl;
-import org.jdatepicker.impl.UtilDateModel;
+import com.github.lgooddatepicker.components.DatePicker;
+import com.github.lgooddatepicker.components.DatePickerSettings;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.*;
 import java.sql.*;
-import java.util.Date;
-import java.util.Properties;
+import java.time.LocalDate;
+import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-//implements ActionListener
+
 public class Home extends JFrame {
     private JTabbedPane tabbedPane1;
     private JLabel Jfirstname;
@@ -57,7 +55,6 @@ public class Home extends JFrame {
 
     private Integer k = 0, id, productId, orderDetailId, quantityInStock, price, quantityOrdered, priceEach, totalAmount, profit;
     private String firstname, lastname, productName, volume;
-    private String datePattern = "yyyy-MM-dd";
 
     PreparedStatement preparedStatement;
     Connection connection = storeConnection.connect();
@@ -675,9 +672,8 @@ public class Home extends JFrame {
         }
     }
 
-    JDateChooser dateChooser = new JDateChooser();
-
-    //private JDatePickerImpl datePicker;
+    private Locale thaiLocale = new Locale("th", "TH");
+    private Font thaiFont = new Font("Angsana New", Font.PLAIN, 26);
 
     public static void main(String[] args) {
 
@@ -685,44 +681,33 @@ public class Home extends JFrame {
         home.LoadAllCustomerToComboBox();
         home.LoadAllProductToComboBox();
 
-        home.JOrderDate.add(home.dateChooser);
 
-//        UtilDateModel model = new UtilDateModel();
-//        model.setDate(1990, 8, 24);
-//        model.setSelected(true);
-//        Properties p = new Properties();
-//        // Set any properties you need for the date panel
-//        // For example: p.put("text.today", "Today");
-//        p.put("text.today", "Today");
-//        p.put("text.month", "Month");
-//        p.put("text.year", "Year");
-//
-//
-//        // Create the JDatePanelImpl with the model and properties
-//        JDatePanelImpl datePanel = new JDatePanelImpl(model, p);
-//        home.datePicker = new JDatePickerImpl(datePanel, new DateLabelFormatter());
-
-//        home.JOrderDate.add(home.datePicker);
+        DatePickerSettings dateSettings = new DatePickerSettings(home.thaiLocale);
+        dateSettings.setFontCalendarDateLabels(home.thaiFont);
+        dateSettings.setFontCalendarWeekdayLabels(home.thaiFont);
+        dateSettings.setFontCalendarWeekNumberLabels(home.thaiFont);
+        dateSettings.setFontClearLabel(home.thaiFont);
+        dateSettings.setFontTodayLabel(home.thaiFont);
+        dateSettings.setFontMonthAndYearMenuLabels(home.thaiFont);
+        dateSettings.setFontMonthAndYearNavigationButtons(home.thaiFont);
+        dateSettings.setFontVetoedDate(home.thaiFont);
+        dateSettings.setFontValidDate(home.thaiFont);
+        dateSettings.setFontInvalidDate(home.thaiFont);
+        DatePicker datePicker = new DatePicker(dateSettings);
+        datePicker.setDateToToday();
+        home.JOrderDate.add(datePicker);
 
         home.setContentPane(home.JpanalMain);
         home.setTitle("Store Management");
         home.setSize(1000, 600);
         home.setVisible(true);
         home.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        datePicker.addDateChangeListener(event -> {
+            LocalDate selectedDate = event.getNewDate();
+            System.out.println("Selected date: " + selectedDate);
+        });
     }
 
-//    @Override
-//    public void actionPerformed(ActionEvent event) {
-//        // for UtilDateModel, the value returned is of type java.util.Date
-//        java.util.Date selectedDate = (java.util.Date) datePicker.getModel().getValue();
-//
-//        // for UtilCalendarModel, the value returned is of type java.util.Calendar
-////		Calendar selectedValue = (Calendar) datePicker.getModel().getValue();
-////		Date selectedDate = selectedValue.getTime();
-//
-//        // for SqlDateModel, the value returned is of type java.sql.Date
-////		java.sql.Date selectedDate = (java.sql.Date) datePicker.getModel().getValue();
-//
-//        JOptionPane.showMessageDialog(this, "The selected date is " + selectedDate);
-//    }
+
 }

@@ -8,7 +8,7 @@ public class storeConnection {
     public static Connection connect(){
         String URL = "jdbc:mysql://localhost:3306/storemom";
         String username = "root";
-        String password = "Lodchong_1236";
+        String password = "mysql";
         Connection connection = null;
 
         try {
