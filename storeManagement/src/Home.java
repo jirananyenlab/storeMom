@@ -52,9 +52,13 @@ public class Home extends JFrame {
     private JButton oAdd;
     private JButton oDelete;
     private JComboBox oDetailId;
+    private JTextField OrderIn;
+    private JButton reload1;
 
     private Integer k = 0, id, productId, orderDetailId, quantityInStock, price, quantityOrdered, priceEach, totalAmount, profit;
     private String firstname, lastname, productName, volume;
+
+    private LocalDate selectedDate;
 
     PreparedStatement preparedStatement;
     Connection connection = storeConnection.connect();
@@ -441,18 +445,33 @@ public class Home extends JFrame {
             public void actionPerformed(ActionEvent e) {
 
 
+                //                if (selectedDate==null){
+//                  selectedDate =  LocalDate.now();
+//                    System.out.println(selectedDate);
+//                }
+//                selectedDate;
+                String Date = selectedDate.toString() ;
                 try {
-                    if (lname.getText().isBlank()) {
-                        statement = connection.createStatement();
-                        String sql = "insert into orders (orderId,totalAmount,customer_id,profit) value(?,?,?,?) ;";
-                        preparedStatement = connection.prepareStatement(sql);
-                        preparedStatement.setString(1, fname.getText());
-                        preparedStatement.setString(2, lname.getText());
 
-                        k = preparedStatement.executeUpdate();
-                    } else {
-                        k = 0;
-                    }
+                    statement = connection.createStatement();
+                    String sql = "insert into orders (totalAmount,customer_id,orderDate,profit) value(?,?,?,?)";
+                    preparedStatement = connection.prepareStatement(sql);
+                    preparedStatement.setInt(1, Integer.parseInt(totalAmout.getText()));
+                    preparedStatement.setInt(2, id);
+                    preparedStatement.setString(3, "");
+                    preparedStatement.setInt(4, Integer.parseInt(profitField.getText()));
+
+                    String sqlOd = "insert into orderdetail (quantityOrdered,priceEach,productId,orderId) value(?,?,?,?)";
+                    preparedStatement = connection.prepareStatement(sqlOd);
+                    preparedStatement.setInt(1, 0);
+                    preparedStatement.setInt(2, 0);
+                    preparedStatement.setInt(3, 0);
+                    preparedStatement.setInt(4, 0);
+
+
+
+                    k = preparedStatement.executeUpdate();
+
                     if (k == 1) {
                         JOptionPane.showMessageDialog(cAdd, "Customer Added Successfully");
                         preparedStatement = connection.prepareStatement("commit ");
@@ -464,6 +483,7 @@ public class Home extends JFrame {
                         preparedStatement = connection.prepareStatement("rollback ");
                         preparedStatement.executeUpdate();
                     }
+
 
                 } catch (SQLException ex) {
                     Logger.getLogger(Home.class.getName()).log(Level.SEVERE, null, ex);
@@ -535,6 +555,47 @@ public class Home extends JFrame {
                 System.out.println(productId + "!!!");
             }
         });
+        reload1.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                LoadAllCustomerToComboBox();
+                LoadAllProductToComboBox();
+            }
+        });
+    }
+
+    public void setNewQuantityInStock(int productId) {
+        try {
+            statement = connection.createStatement();
+            String sql = "UPDATE product SET quantityInStock=? WHERE productId = ?";
+            preparedStatement = connection.prepareStatement(sql);
+            preparedStatement.setInt(1, Integer.parseInt(orderIn.getText()));
+            preparedStatement.setInt(1, productId);
+
+            preparedStatement.executeUpdate();
+
+
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage() + "!!!!!");
+        }
+    }
+
+    public  int getNewQuantityInStock(int productId){
+        try{
+            statement = connection.createStatement();
+            String sql = "select quantityInStock from product where  productId = ?";
+            preparedStatement = connection.prepareStatement(sql);
+            preparedStatement.setInt(1, productId);
+
+            ResultSet resultSet =  preparedStatement.executeQuery();
+
+            while (resultSet.next()){
+                quantityInStock = resultSet.getInt(1);
+            }
+        }catch (Exception ex){
+            System.out.println(ex.getMessage()+"!!!!!");
+        }
+        return quantityInStock;
     }
 
     public void LoadAllCustomerToComboBox() {
@@ -704,8 +765,8 @@ public class Home extends JFrame {
         home.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         datePicker.addDateChangeListener(event -> {
-            LocalDate selectedDate = event.getNewDate();
-            System.out.println("Selected date: " + selectedDate);
+            home.selectedDate = event.getNewDate();
+            System.out.println("Selected date: " + home.selectedDate);
         });
     }
 
