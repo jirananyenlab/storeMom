@@ -7,6 +7,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.sql.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -39,7 +40,7 @@ public class Home extends JFrame {
     private JTextField pName;
     private JTextField pStock;
     private JLabel customerName;
-    private JLabel Date;
+    private JLabel Dated;
     private JTextField orderQ;
     private JButton oUpdate;
     private JTextField cusFullnameField;
@@ -52,13 +53,18 @@ public class Home extends JFrame {
     private JButton oAdd;
     private JButton oDelete;
     private JComboBox oDetailId;
-    private JTextField OrderIn;
-    private JButton reload1;
+    private JTextField productIn;
+    private JButton oNew;
+    private JTable orderTable;
+    private JTextField odQuantity;
+    private JTextField odPriceEach;
 
-    private Integer k = 0, id, productId, orderDetailId, quantityInStock, price, quantityOrdered, priceEach, totalAmount, profit;
+    private Integer k = 0, id, productId, orderId,customerId, orderDetailId, quantityInStock, quantityOrdered;
     private String firstname, lastname, productName, volume;
+    private Double profit , totalAmount, price , priceEach;
 
     private LocalDate selectedDate;
+    private Time selectedTime;
 
     PreparedStatement preparedStatement;
     Connection connection = storeConnection.connect();
@@ -243,11 +249,11 @@ public class Home extends JFrame {
                         lastname = results.getString(3);
                         orderDetailId = results.getInt(4);
                         productName = results.getString(5);
-                        price = results.getInt(6);
-                        totalAmount = results.getInt(7);
-                        profit = results.getInt(8);
+                        price = results.getDouble(6);
+                        totalAmount = results.getDouble(7);
+                        profit = results.getDouble(8);
                         quantityOrdered = results.getInt(9);
-                        priceEach = results.getInt(10);
+                        priceEach = results.getDouble(10);
 
 
                         String[] row = {String.valueOf(id), firstname, lastname, String.valueOf(orderDetailId), productName, String.valueOf(price), String.valueOf(totalAmount), String.valueOf(profit), String.valueOf(quantityOrdered), String.valueOf(priceEach)};
@@ -423,7 +429,7 @@ public class Home extends JFrame {
                         productId = results.getInt(1);
                         productName = results.getString(2);
                         quantityInStock = results.getInt(3);
-                        price = results.getInt(4);
+                        price = results.getDouble(4);
                         volume = results.getString(5);
                         String[] row = {String.valueOf(productId), productName, String.valueOf(quantityInStock), String.valueOf(price), volume};
                         model.addRow(row);
@@ -440,51 +446,57 @@ public class Home extends JFrame {
                 }
             }
         });
+
         oAdd.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                if (selectedDate == null || selectedTime == null) {
+                    selectedDate = LocalDate.now();
+                    selectedTime = Time.valueOf(LocalDateTime.now().toLocalTime());
+                }
 
-
-                //                if (selectedDate==null){
-//                  selectedDate =  LocalDate.now();
-//                    System.out.println(selectedDate);
-//                }
-//                selectedDate;
-                String Date = selectedDate.toString() ;
+                LocalDateTime dateTimeAdd = LocalDateTime.of(selectedDate, selectedTime.toLocalTime());
+                totalAmount = Double.parseDouble(orderQ.getText()) * Double.parseDouble(sPrice.getText());
+                profit = totalAmount - (Double.parseDouble(orderQ.getText()) * price);
+                System.out.println(totalAmount);
+                System.out.println(profit);
                 try {
 
                     statement = connection.createStatement();
                     String sql = "insert into orders (totalAmount,customer_id,orderDate,profit) value(?,?,?,?)";
-                    preparedStatement = connection.prepareStatement(sql);
-                    preparedStatement.setInt(1, Integer.parseInt(totalAmout.getText()));
-                    preparedStatement.setInt(2, id);
-                    preparedStatement.setString(3, "");
-                    preparedStatement.setInt(4, Integer.parseInt(profitField.getText()));
+                    preparedStatement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+                    preparedStatement.setDouble(1, totalAmount);
+                    preparedStatement.setInt(2, customerId);
+                    preparedStatement.setString(3, String.valueOf(Timestamp.valueOf(dateTimeAdd)));
+                    preparedStatement.setDouble(4, profit);
 
-                    String sqlOd = "insert into orderdetail (quantityOrdered,priceEach,productId,orderId) value(?,?,?,?)";
-                    preparedStatement = connection.prepareStatement(sqlOd);
-                    preparedStatement.setInt(1, 0);
-                    preparedStatement.setInt(2, 0);
-                    preparedStatement.setInt(3, 0);
-                    preparedStatement.setInt(4, 0);
+                    preparedStatement.executeUpdate();
 
+                    ResultSet generatedKeys = preparedStatement.getGeneratedKeys();
+                    if (generatedKeys.next()) {
+                        orderId = generatedKeys.getInt(1); // รับค่า orderId ที่ถูกสร้างขึ้น
 
+                        String sqlOrderDetail = "insert into orderdetail (quantityOrdered,priceEach,productId,orderId) value(?,?,?,?)";
+                        preparedStatement = connection.prepareStatement(sqlOrderDetail);
+                        preparedStatement.setInt(1, Integer.parseInt(orderQ.getText()));
+                        preparedStatement.setDouble(2, Double.parseDouble(sPrice.getText()));
+                        preparedStatement.setInt(3, productId);
+                        preparedStatement.setInt(4, orderId);
+                    }
 
                     k = preparedStatement.executeUpdate();
-
+                    System.out.println(k);
                     if (k == 1) {
                         JOptionPane.showMessageDialog(cAdd, "Customer Added Successfully");
-                        preparedStatement = connection.prepareStatement("commit ");
+                        preparedStatement = connection.prepareStatement("commit");
                         preparedStatement.executeUpdate();
                         fname.setText("");
                         lname.setText("");
                     } else {
                         JOptionPane.showMessageDialog(cAdd, "An error occur to add customer");
-                        preparedStatement = connection.prepareStatement("rollback ");
+                        preparedStatement = connection.prepareStatement("rollback");
                         preparedStatement.executeUpdate();
                     }
-
-
                 } catch (SQLException ex) {
                     Logger.getLogger(Home.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -505,6 +517,52 @@ public class Home extends JFrame {
 
             }
         });
+        oNew.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                DefaultTableModel model = (DefaultTableModel) orderTable.getModel();
+                //clear row in table
+                model.setRowCount(0);
+                Connection connection = storeConnection.connect();
+                Statement statement;
+                try {
+                    statement = connection.createStatement();
+                    String sqlOrder = "SELECT orderId , totalAmount  , customer_id ,profit,orderDate FROM orders";
+                    ResultSet results = statement.executeQuery(sqlOrder);
+                    ResultSetMetaData rsmd = results.getMetaData();
+                    int cols = rsmd.getColumnCount();
+                    String[] columnNames = new String[cols];
+                    for (int i = 0; i < cols; i++) {
+                        columnNames[i] = rsmd.getColumnName(i + 1);
+                    }
+                    //ชื่อ column
+                    model.setColumnIdentifiers(columnNames);
+
+                    while (results.next()) {
+                        //สร้างตัวแปลเพื่อมาเก็บ field
+                        String[] row = {
+                                String.valueOf(results.getInt(1)),
+                                String.valueOf(results.getInt(2)),
+                                String.valueOf(results.getInt(3)),
+                                results.getString(4),
+                                results.getString(5)
+                        };
+                        model.addRow(row);
+                    }
+                    //  System.out.println( model.getRowCount());
+//                    if (model.getRowCount() == 1) {
+//                        pName.setText(productName);
+//                        pStock.setText(String.valueOf(quantityInStock));
+//                        pPrice.setText(String.valueOf(price));
+//                        pVolume.setText(String.valueOf(volume));
+//                    }
+                } catch (SQLException ex) {
+                    Logger.getLogger(Home.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        });
+
+
         cusNameBox.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -520,13 +578,14 @@ public class Home extends JFrame {
                     //   System.out.println(resultCustomerName);
                     while (resultCustomerName.next()) {
                         //สร้างตัวแปลเพื่อมาเก็บ field
-                        id = resultCustomerName.getInt(1);
+                        customerId = resultCustomerName.getInt(1);
                     }
 
                 } catch (Exception ex) {
                     System.out.println(ex.getMessage() + "!!!!!");
                 }
-                System.out.println(id + "!!!");
+                System.out.println(customerId + "!!!");
+                System.out.println("!!adwd!");
             }
         });
 
@@ -537,7 +596,7 @@ public class Home extends JFrame {
                 System.out.println(name);
                 try {
                     statement = connection.createStatement();
-                    String sqlCustomer = "SELECT productId FROM product WHERE productName =?";
+                    String sqlCustomer = "SELECT productId,quantityInStock,price FROM product WHERE productName =?";
                     preparedStatement = connection.prepareStatement(sqlCustomer);
                     preparedStatement.setString(1, name);
 
@@ -547,15 +606,18 @@ public class Home extends JFrame {
                     while (resultProductName.next()) {
                         //สร้างตัวแปลเพื่อมาเก็บ field
                         productId = resultProductName.getInt(1);
+                        productIn.setText(String.valueOf(resultProductName.getInt(2)));
+                        price = resultProductName.getDouble(3);
                     }
 
                 } catch (Exception ex) {
                     System.out.println(ex.getMessage() + "!!!!!");
                 }
                 System.out.println(productId + "!!!");
+                System.out.println(price + "!!!");
             }
         });
-        reload1.addActionListener(new ActionListener() {
+        oNew.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 LoadAllCustomerToComboBox();
@@ -569,7 +631,7 @@ public class Home extends JFrame {
             statement = connection.createStatement();
             String sql = "UPDATE product SET quantityInStock=? WHERE productId = ?";
             preparedStatement = connection.prepareStatement(sql);
-            preparedStatement.setInt(1, Integer.parseInt(orderIn.getText()));
+            preparedStatement.setInt(1, Integer.parseInt(productIn.getText()));
             preparedStatement.setInt(1, productId);
 
             preparedStatement.executeUpdate();
@@ -580,20 +642,20 @@ public class Home extends JFrame {
         }
     }
 
-    public  int getNewQuantityInStock(int productId){
-        try{
+    public int getNewQuantityInStock(int productId) {
+        try {
             statement = connection.createStatement();
             String sql = "select quantityInStock from product where  productId = ?";
             preparedStatement = connection.prepareStatement(sql);
             preparedStatement.setInt(1, productId);
 
-            ResultSet resultSet =  preparedStatement.executeQuery();
+            ResultSet resultSet = preparedStatement.executeQuery();
 
-            while (resultSet.next()){
+            while (resultSet.next()) {
                 quantityInStock = resultSet.getInt(1);
             }
-        }catch (Exception ex){
-            System.out.println(ex.getMessage()+"!!!!!");
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage() + "!!!!!");
         }
         return quantityInStock;
     }
@@ -603,11 +665,11 @@ public class Home extends JFrame {
             statement = connection.createStatement();
             String sqlCustomer = "SELECT concat(fname,\" \",lname)  FROM customer";
             ResultSet resultCustomerName = statement.executeQuery(sqlCustomer);
-
             while (resultCustomerName.next()) {
                 cusNameBox.addItem(resultCustomerName.getString(1).toString());
                 System.out.println(resultCustomerName.getString(1).toString());
             }
+
         } catch (Exception ex) {
             System.out.println(ex.getMessage() + "!!!!!");
         }
@@ -618,12 +680,14 @@ public class Home extends JFrame {
         try {
             statement = connection.createStatement();
             String sqlProduct = "SELECT productName FROM product";
-            ResultSet resultProductName = statement.executeQuery(sqlProduct);
+            ResultSet resultProduct = statement.executeQuery(sqlProduct);
 
-            while (resultProductName.next()) {
-                proNameBox.addItem(resultProductName.getString(1).toString());
-                System.out.println(resultProductName.getString(1).toString());
+            while (resultProduct.next()) {
+                proNameBox.addItem(resultProduct.getString(1).toString());
+                System.out.println(resultProduct.getString(1).toString());
             }
+
+
 
         } catch (Exception ex) {
             System.out.println(ex.getMessage() + "!!!!!");
@@ -669,11 +733,11 @@ public class Home extends JFrame {
                 lastname = results.getString(3);
                 orderDetailId = results.getInt(4);
                 productName = results.getString(5);
-                price = results.getInt(6);
-                totalAmount = results.getInt(7);
-                profit = results.getInt(8);
+                price = results.getDouble(6);
+                totalAmount = results.getDouble(7);
+                profit = results.getDouble(8);
                 quantityOrdered = results.getInt(9);
-                priceEach = results.getInt(10);
+                priceEach = results.getDouble(10);
 
                 String[] row = {String.valueOf(id), firstname, lastname, String.valueOf(orderDetailId), productName, String.valueOf(price), String.valueOf(totalAmount), String.valueOf(profit), String.valueOf(quantityOrdered), String.valueOf(priceEach)};
                 model.addRow(row);
@@ -716,7 +780,7 @@ public class Home extends JFrame {
                 productId = results.getInt(1);
                 productName = results.getString(2);
                 quantityInStock = results.getInt(3);
-                price = results.getInt(4);
+                price = results.getDouble(4);
                 volume = results.getString(5);
                 String[] row = {String.valueOf(productId), productName, String.valueOf(quantityInStock), String.valueOf(price), volume};
                 model.addRow(row);
@@ -734,31 +798,33 @@ public class Home extends JFrame {
     }
 
     private Locale thaiLocale = new Locale("th", "TH");
-    private Font thaiFont = new Font("Angsana New", Font.PLAIN, 26);
+    private Font thaiFont = new Font("Angsana New", Font.PLAIN, 24);
 
     public static void main(String[] args) {
 
         Home home = new Home();
+        home.setContentPane(home.JpanalMain);
         home.LoadAllCustomerToComboBox();
         home.LoadAllProductToComboBox();
-
+        // Set the default font for the application
+        setDefaultFont(home.thaiFont);
 
         DatePickerSettings dateSettings = new DatePickerSettings(home.thaiLocale);
-        dateSettings.setFontCalendarDateLabels(home.thaiFont);
-        dateSettings.setFontCalendarWeekdayLabels(home.thaiFont);
-        dateSettings.setFontCalendarWeekNumberLabels(home.thaiFont);
-        dateSettings.setFontClearLabel(home.thaiFont);
-        dateSettings.setFontTodayLabel(home.thaiFont);
-        dateSettings.setFontMonthAndYearMenuLabels(home.thaiFont);
-        dateSettings.setFontMonthAndYearNavigationButtons(home.thaiFont);
-        dateSettings.setFontVetoedDate(home.thaiFont);
-        dateSettings.setFontValidDate(home.thaiFont);
-        dateSettings.setFontInvalidDate(home.thaiFont);
+//        dateSettings.setFontCalendarDateLabels(home.thaiFont);
+//        dateSettings.setFontCalendarWeekdayLabels(home.thaiFont);
+//        dateSettings.setFontCalendarWeekNumberLabels(home.thaiFont);
+//        dateSettings.setFontClearLabel(home.thaiFont);
+//        dateSettings.setFontTodayLabel(home.thaiFont);
+//        dateSettings.setFontMonthAndYearMenuLabels(home.thaiFont);
+//        dateSettings.setFontMonthAndYearNavigationButtons(home.thaiFont);
+//        dateSettings.setFontVetoedDate(home.thaiFont);
+//        dateSettings.setFontValidDate(home.thaiFont);
+//        dateSettings.setFontInvalidDate(home.thaiFont);
         DatePicker datePicker = new DatePicker(dateSettings);
         datePicker.setDateToToday();
         home.JOrderDate.add(datePicker);
 
-        home.setContentPane(home.JpanalMain);
+
         home.setTitle("Store Management");
         home.setSize(1000, 600);
         home.setVisible(true);
@@ -766,8 +832,19 @@ public class Home extends JFrame {
 
         datePicker.addDateChangeListener(event -> {
             home.selectedDate = event.getNewDate();
-            System.out.println("Selected date: " + home.selectedDate);
+            home.selectedTime = Time.valueOf(LocalDateTime.now().toLocalTime());
+
+            LocalDateTime dateTime = LocalDateTime.of(home.selectedDate, home.selectedTime.toLocalTime());
+            System.out.println("Selected date: " + Timestamp.valueOf(dateTime));
         });
+    }
+
+    private static void setDefaultFont(Font font) {
+        for (Object key : UIManager.getDefaults().keySet()) {
+            if (key.toString().endsWith(".font")) {
+                UIManager.put(key, font);
+            }
+        }
     }
 
 
