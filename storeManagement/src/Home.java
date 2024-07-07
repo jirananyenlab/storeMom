@@ -45,24 +45,30 @@ public class Home extends JFrame {
     private JButton oUpdate;
     private JTextField cusFullnameField;
     private JTextField pVolume;
-    private JTextField profitField;
-    private JTextField totalAmout;
+    private JTextField odTotalAmount;
+    private JTextField odTotalProfit;
     private JTextField sPrice;
     private JComboBox proNameBox;
     private JComboBox cusNameBox;
     private JButton oAdd;
     private JButton oDelete;
-    private JComboBox oDetailId;
     private JTextField productIn;
     private JButton oNew;
     private JTable orderTable;
     private JTextField odQuantity;
     private JTextField odPriceEach;
+    private JButton odSearch;
+    private JTextField oderIdSearch;
+    private JTable orderTableAdd;
+    private JButton odClear;
+    private JButton odConfirm;
+    private JComboBox cusNameBox2;
+    private JButton oAll;
 
-    private Integer k = 0, id, productId, orderId,customerId, orderDetailId, quantityInStock, quantityOrdered;
+    private Integer k = 0, id, productId, orderId, customerId, orderDetailId, quantityInStock, quantityOrdered;
     private String firstname, lastname, productName, volume;
-    private Double profit , totalAmount, price , priceEach;
-
+    private Double profit, totalAmount, price, priceEach;
+    private Order orderAll = new Order();
     private LocalDate selectedDate;
     private Time selectedTime;
 
@@ -454,56 +460,41 @@ public class Home extends JFrame {
                     selectedDate = LocalDate.now();
                     selectedTime = Time.valueOf(LocalDateTime.now().toLocalTime());
                 }
-
                 LocalDateTime dateTimeAdd = LocalDateTime.of(selectedDate, selectedTime.toLocalTime());
                 totalAmount = Double.parseDouble(orderQ.getText()) * Double.parseDouble(sPrice.getText());
                 profit = totalAmount - (Double.parseDouble(orderQ.getText()) * price);
-                System.out.println(totalAmount);
-                System.out.println(profit);
-                try {
 
-                    statement = connection.createStatement();
-                    String sql = "insert into orders (totalAmount,customer_id,orderDate,profit) value(?,?,?,?)";
-                    preparedStatement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-                    preparedStatement.setDouble(1, totalAmount);
-                    preparedStatement.setInt(2, customerId);
-                    preparedStatement.setString(3, String.valueOf(Timestamp.valueOf(dateTimeAdd)));
-                    preparedStatement.setDouble(4, profit);
+                orderAll.setCustomerId(customerId);
+                orderAll.setOrderDate(String.valueOf(Timestamp.valueOf(dateTimeAdd)));
+                orderAll.addOrderDetail(new OrderDetail(productId,Integer.parseInt(orderQ.getText()), Double.parseDouble(sPrice.getText())));
+                orderAll.addTotalAmount(totalAmount);
+                orderAll.addProfit(profit);
 
-                    preparedStatement.executeUpdate();
+                DefaultTableModel model = (DefaultTableModel) orderTableAdd.getModel();
+                String[] columnNames = new String[6];
+                columnNames[0] = "Select Product";
+                columnNames[1] = "Order quantity";
+                columnNames[2] = "Selling price";
+                columnNames[3] = "DateTime";
+                columnNames[4] = "totalAmount";
+                columnNames[5] = "profit";
 
-                    ResultSet generatedKeys = preparedStatement.getGeneratedKeys();
-                    if (generatedKeys.next()) {
-                        orderId = generatedKeys.getInt(1); // รับค่า orderId ที่ถูกสร้างขึ้น
+                //ชื่อ column
+                model.setColumnIdentifiers(columnNames);
 
-                        String sqlOrderDetail = "insert into orderdetail (quantityOrdered,priceEach,productId,orderId) value(?,?,?,?)";
-                        preparedStatement = connection.prepareStatement(sqlOrderDetail);
-                        preparedStatement.setInt(1, Integer.parseInt(orderQ.getText()));
-                        preparedStatement.setDouble(2, Double.parseDouble(sPrice.getText()));
-                        preparedStatement.setInt(3, productId);
-                        preparedStatement.setInt(4, orderId);
-                    }
+                String[] row = {
+                        String.valueOf(productId),
+                        String.valueOf(orderQ.getText()),
+                        String.valueOf(sPrice.getText()),
+                        String.valueOf(Timestamp.valueOf(dateTimeAdd)),
+                        String.valueOf(totalAmount),
+                        String.valueOf(profit)
+                };
+                model.addRow(row);
 
-                    k = preparedStatement.executeUpdate();
-                    System.out.println(k);
-                    if (k == 1) {
-                        JOptionPane.showMessageDialog(cAdd, "Customer Added Successfully");
-                        preparedStatement = connection.prepareStatement("commit");
-                        preparedStatement.executeUpdate();
-                        fname.setText("");
-                        lname.setText("");
-                    } else {
-                        JOptionPane.showMessageDialog(cAdd, "An error occur to add customer");
-                        preparedStatement = connection.prepareStatement("rollback");
-                        preparedStatement.executeUpdate();
-                    }
-                } catch (SQLException ex) {
-                    Logger.getLogger(Home.class.getName()).log(Level.SEVERE, null, ex);
-                }
-                k = 0;
+                odTotalAmount.setText(String.valueOf(orderAll.getTotalAmount()));
+                odTotalProfit.setText(String.valueOf(orderAll.getProfit()));
             }
-
-
         });
         oUpdate.addActionListener(new ActionListener() {
             @Override
@@ -517,7 +508,7 @@ public class Home extends JFrame {
 
             }
         });
-        oNew.addActionListener(new ActionListener() {
+        oAll.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 DefaultTableModel model = (DefaultTableModel) orderTable.getModel();
@@ -561,34 +552,114 @@ public class Home extends JFrame {
                 }
             }
         });
+        odConfirm.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    statement = connection.createStatement();
+                    String sql = "insert into orders (totalAmount,customer_id,orderDate,profit) value(?,?,?,?)";
+                    preparedStatement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+                    preparedStatement.setDouble(1, orderAll.getTotalAmount());
+                    preparedStatement.setInt(2, orderAll.getCustomerId());
+                    preparedStatement.setString(3, orderAll.getOrderDate());
+                    preparedStatement.setDouble(4, orderAll.getProfit());
+
+                    k = preparedStatement.executeUpdate();
+
+                    ResultSet generatedKeys = preparedStatement.getGeneratedKeys();
+                    if (generatedKeys.next()) {
+                        orderId = generatedKeys.getInt(1); // รับค่า orderId ที่ถูกสร้างขึ้น
+                        System.out.println(orderAll.getOrderDetails());
+                        orderAll.getOrderDetails().forEach(orderDetail -> {
+                            try {
+                                String sqlOrderDetail = "insert into orderdetail (quantityOrdered,priceEach,productId,orderId) value(?,?,?,?)";
+                                preparedStatement = connection.prepareStatement(sqlOrderDetail);
+                                preparedStatement.setInt(1, orderDetail.getQuantityOrdered());
+                                preparedStatement.setDouble(2, orderDetail.getPriceEach());
+                                preparedStatement.setInt(3, orderDetail.getProductId());
+                                preparedStatement.setInt(4, orderId);
+
+                                preparedStatement.executeUpdate();
+                            } catch (SQLException ex) {
+                                Logger.getLogger(Home.class.getName()).log(Level.SEVERE, null, ex);
+                            }
+                        });
+                    }
+                    System.out.println(k);
+                    if (k == 1) {
+                        JOptionPane.showMessageDialog(cAdd, "Customer Added Successfully");
+                        preparedStatement = connection.prepareStatement("commit");
+                        preparedStatement.executeUpdate();
+                        fname.setText("");
+                        lname.setText("");
+                    } else {
+                        JOptionPane.showMessageDialog(cAdd, "An error occur to add customer");
+                        preparedStatement = connection.prepareStatement("rollback");
+                        preparedStatement.executeUpdate();
+                    }
+                } catch (SQLException ex) {
+                    Logger.getLogger(Home.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                k = 0;
+            }
+        });
+        odClear.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                DefaultTableModel model = (DefaultTableModel) orderTableAdd.getModel();
+                model.setRowCount(0);
+                orderAll.clearOrder();
+                odTotalAmount.setText("");
+                odTotalProfit.setText("");
+            }
+        });
+
+        odSearch.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (!oderIdSearch.getText().isBlank()) {
+                    try {
+                        connection.createStatement();
+                        String sql = "SELECT * FROM orderdetail where orderDetailId = ?";
+                        preparedStatement = connection.prepareStatement(sql);
+                        preparedStatement.setInt(1, Integer.parseInt(oderIdSearch.getText()));
+
+                        ResultSet results = preparedStatement.executeQuery();
+
+                        if (results.next()) {
+                            orderDetailId = results.getInt(1);
+                            quantityOrdered = results.getInt(2);
+                            priceEach = results.getDouble(3);
+                            productId = results.getInt(4);
+                            orderId = results.getInt(5);
+                        }
+                        odQuantity.setText(String.valueOf(quantityOrdered));
+                        odPriceEach.setText(String.valueOf(priceEach));
+
+                    } catch (SQLException ex) {
+                        Logger.getLogger(Home.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(odSearch, "Please enter order id");
+                }
+            }
+        });
 
 
         cusNameBox.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String name = (String) cusNameBox.getSelectedItem();
-                System.out.println(name);
-                try {
-                    statement = connection.createStatement();
-                    String sqlCustomer = "SELECT id FROM customer WHERE CONCAT(fname, ' ', lname) =?";
-                    preparedStatement = connection.prepareStatement(sqlCustomer);
-                    preparedStatement.setString(1, name);
-
-                    ResultSet resultCustomerName = preparedStatement.executeQuery();
-                    //   System.out.println(resultCustomerName);
-                    while (resultCustomerName.next()) {
-                        //สร้างตัวแปลเพื่อมาเก็บ field
-                        customerId = resultCustomerName.getInt(1);
-                    }
-
-                } catch (Exception ex) {
-                    System.out.println(ex.getMessage() + "!!!!!");
-                }
-                System.out.println(customerId + "!!!");
-                System.out.println("!!adwd!");
+                getCustomerByName(name);
             }
         });
-
+        cusNameBox2.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String name = (String) cusNameBox2.getSelectedItem();
+                getCustomerByName(name);
+            }
+        });
         proNameBox.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -617,13 +688,33 @@ public class Home extends JFrame {
                 System.out.println(price + "!!!");
             }
         });
-        oNew.addActionListener(new ActionListener() {
+        oAll.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 LoadAllCustomerToComboBox();
                 LoadAllProductToComboBox();
             }
         });
+    }
+
+    public void getCustomerByName(String name) {
+        try {
+            statement = connection.createStatement();
+            String sqlCustomer = "SELECT id FROM customer WHERE CONCAT(fname, ' ', lname) =?";
+            preparedStatement = connection.prepareStatement(sqlCustomer);
+            preparedStatement.setString(1, name);
+
+            ResultSet resultCustomerName = preparedStatement.executeQuery();
+            //   System.out.println(resultCustomerName);
+            while (resultCustomerName.next()) {
+                //สร้างตัวแปลเพื่อมาเก็บ field
+                customerId = resultCustomerName.getInt(1);
+            }
+
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage() + "!!!!!");
+        }
+        System.out.println(customerId + "!!!");
     }
 
     public void setNewQuantityInStock(int productId) {
@@ -662,12 +753,14 @@ public class Home extends JFrame {
 
     public void LoadAllCustomerToComboBox() {
         try {
+            cusNameBox.removeAllItems();
+            cusNameBox2.removeAllItems();
             statement = connection.createStatement();
             String sqlCustomer = "SELECT concat(fname,\" \",lname)  FROM customer";
             ResultSet resultCustomerName = statement.executeQuery(sqlCustomer);
             while (resultCustomerName.next()) {
                 cusNameBox.addItem(resultCustomerName.getString(1).toString());
-                System.out.println(resultCustomerName.getString(1).toString());
+                cusNameBox2.addItem(resultCustomerName.getString(1).toString());
             }
 
         } catch (Exception ex) {
@@ -678,6 +771,7 @@ public class Home extends JFrame {
 
     public void LoadAllProductToComboBox() {
         try {
+            proNameBox.removeAllItems();
             statement = connection.createStatement();
             String sqlProduct = "SELECT productName FROM product";
             ResultSet resultProduct = statement.executeQuery(sqlProduct);
@@ -686,7 +780,6 @@ public class Home extends JFrame {
                 proNameBox.addItem(resultProduct.getString(1).toString());
                 System.out.println(resultProduct.getString(1).toString());
             }
-
 
 
         } catch (Exception ex) {
