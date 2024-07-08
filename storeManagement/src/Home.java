@@ -2,7 +2,10 @@ import com.github.lgooddatepicker.components.DatePicker;
 import com.github.lgooddatepicker.components.DatePickerSettings;
 
 import javax.swing.*;
+import javax.swing.event.TableModelEvent;
+import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableModel;
 import java.awt.*;
 import java.awt.event.*;
 import java.sql.*;
@@ -58,14 +61,15 @@ public class Home extends JFrame {
     private JTextField odQuantity;
     private JTextField odPriceEach;
     private JButton odSearch;
-    private JTextField oderIdSearch;
+    private JTextField oderDetailIdSearch;
     private JTable orderTableAdd;
     private JButton odClear;
     private JButton odConfirm;
     private JComboBox cusNameBox2;
     private JButton oAll;
+    private JTable orderDetailTable;
 
-    private Integer k = 0, id, productId, orderId, customerId, orderDetailId, quantityInStock, quantityOrdered;
+    private Integer k = 0, id, productId, orderId, customerId, orderDetailId,customerIdSearch,quantityInStock, quantityOrdered;
     private String firstname, lastname, productName, volume;
     private Double profit, totalAmount, price, priceEach;
     private Order orderAll = new Order();
@@ -161,7 +165,6 @@ public class Home extends JFrame {
                 k = 0;
             }
         });
-
         cSearch.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -284,7 +287,6 @@ public class Home extends JFrame {
                 }
             }
         });
-
         pAdd.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -371,7 +373,6 @@ public class Home extends JFrame {
             }
 
         });
-
         pDelete.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -512,14 +513,80 @@ public class Home extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 DefaultTableModel model = (DefaultTableModel) orderTable.getModel();
+                DefaultTableModel modelOrderDetail = (DefaultTableModel) orderDetailTable.getModel();
                 //clear row in table
                 model.setRowCount(0);
-                Connection connection = storeConnection.connect();
-                Statement statement;
+                modelOrderDetail.setRowCount(0);
                 try {
                     statement = connection.createStatement();
                     String sqlOrder = "SELECT orderId , totalAmount  , customer_id ,profit,orderDate FROM orders";
                     ResultSet results = statement.executeQuery(sqlOrder);
+                    ResultSetMetaData rsmd = results.getMetaData();
+                    int cols = rsmd.getColumnCount();
+                    String[] columnNames = new String[cols];
+                    for (int i = 0; i < cols; i++) {
+                        columnNames[i] = rsmd.getColumnName(i + 1);
+                    }
+                    //ชื่อ column
+                    model.setColumnIdentifiers(columnNames);
+                    while (results.next()) {
+                        //สร้างตัวแปลเพื่อมาเก็บ field
+                        String[] row = {
+                                String.valueOf(results.getInt(1)),
+                                String.valueOf(results.getInt(2)),
+                                String.valueOf(results.getInt(3)),
+                                results.getString(4),
+                                results.getString(5)
+                        };
+                        model.addRow(row);
+                    }
+
+                    statement = connection.createStatement();
+                    String sqlOrderDetail = "SELECT orderDetailId , quantityOrdered  , priceEach ,productId,orderId FROM orderdetail";
+                    ResultSet resultsOrderDetail = statement.executeQuery(sqlOrderDetail);
+                    ResultSetMetaData rsmdOrderDetail = resultsOrderDetail.getMetaData();
+                    int colsOrderDetail = rsmdOrderDetail.getColumnCount();
+                    String[] columnNamesOrderDetail = new String[colsOrderDetail];
+                    for (int i = 0; i < colsOrderDetail; i++) {
+                        columnNamesOrderDetail[i] = rsmdOrderDetail.getColumnName(i + 1);
+                    }
+                    //ชื่อ column
+                    modelOrderDetail.setColumnIdentifiers(columnNamesOrderDetail);
+                    while (resultsOrderDetail.next()) {
+                        //สร้างตัวแปลเพื่อมาเก็บ field
+                        String[] row = {
+                                String.valueOf(resultsOrderDetail.getInt(1)),
+                                String.valueOf(resultsOrderDetail.getInt(2)),
+                                String.valueOf(resultsOrderDetail.getInt(3)),
+                                resultsOrderDetail.getString(4),
+                                resultsOrderDetail.getString(5)
+                        };
+                        modelOrderDetail.addRow(row);
+                    }
+
+
+
+                } catch (SQLException ex) {
+                    Logger.getLogger(Home.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        });
+        oNew.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                DefaultTableModel model = (DefaultTableModel) orderTable.getModel();
+                DefaultTableModel modelOrderDetail = (DefaultTableModel) orderDetailTable.getModel();
+                //clear row in table
+                model.setRowCount(0);
+                modelOrderDetail.setRowCount(0);
+                try {
+                    statement = connection.createStatement();
+                    String sqlOrder = "SELECT orderId,totalAmount,customer_id,profit,orderDate FROM orders WHERE customer_id =?";
+                    preparedStatement = connection.prepareStatement(sqlOrder);
+                    preparedStatement.setInt(1, customerIdSearch);
+
+                    //ResultSet resultCustomerName = preparedStatement.executeQuery();
+                    ResultSet results = preparedStatement.executeQuery();
                     ResultSetMetaData rsmd = results.getMetaData();
                     int cols = rsmd.getColumnCount();
                     String[] columnNames = new String[cols];
@@ -540,6 +607,31 @@ public class Home extends JFrame {
                         };
                         model.addRow(row);
                     }
+
+                    statement = connection.createStatement();
+                    String sqlOrderDetail = "SELECT od.orderDetailId , od.quantityOrdered  , od.priceEach ,od.productId,od.orderId FROM orderdetail od JOIN orders o ON od.orderId = o.orderId JOIN customer c ON o.customer_id = c.id WHERE c.id =?";
+                    preparedStatement = connection.prepareStatement(sqlOrderDetail);
+                    preparedStatement.setInt(1, customerIdSearch);
+                    ResultSet resultsOrderDetail = preparedStatement.executeQuery();
+                    ResultSetMetaData rsmdOrderDetail = resultsOrderDetail.getMetaData();
+                    int colsOrderDetail = rsmdOrderDetail.getColumnCount();
+                    String[] columnNamesOrderDetail = new String[colsOrderDetail];
+                    for (int i = 0; i < colsOrderDetail; i++) {
+                        columnNamesOrderDetail[i] = rsmdOrderDetail.getColumnName(i + 1);
+                    }
+                    //ชื่อ column
+                    modelOrderDetail.setColumnIdentifiers(columnNamesOrderDetail);
+                    while (resultsOrderDetail.next()) {
+                        //สร้างตัวแปลเพื่อมาเก็บ field
+                        String[] row = {
+                                String.valueOf(resultsOrderDetail.getInt(1)),
+                                String.valueOf(resultsOrderDetail.getInt(2)),
+                                String.valueOf(resultsOrderDetail.getInt(3)),
+                                resultsOrderDetail.getString(4),
+                                resultsOrderDetail.getString(5)
+                        };
+                        modelOrderDetail.addRow(row);
+                    }
                     //  System.out.println( model.getRowCount());
 //                    if (model.getRowCount() == 1) {
 //                        pName.setText(productName);
@@ -552,6 +644,7 @@ public class Home extends JFrame {
                 }
             }
         });
+
         odConfirm.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -613,16 +706,15 @@ public class Home extends JFrame {
                 odTotalProfit.setText("");
             }
         });
-
         odSearch.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (!oderIdSearch.getText().isBlank()) {
+                if (!oderDetailIdSearch.getText().isBlank()) {
                     try {
                         connection.createStatement();
                         String sql = "SELECT * FROM orderdetail where orderDetailId = ?";
                         preparedStatement = connection.prepareStatement(sql);
-                        preparedStatement.setInt(1, Integer.parseInt(oderIdSearch.getText()));
+                        preparedStatement.setInt(1, Integer.parseInt(oderDetailIdSearch.getText()));
 
                         ResultSet results = preparedStatement.executeQuery();
 
@@ -645,19 +737,34 @@ public class Home extends JFrame {
             }
         });
 
+        orderTable.getModel().addTableModelListener(new TableModelListener() {
+            @Override
+            public void tableChanged(TableModelEvent e) {
+                int row = e.getFirstRow();
+                int column = e.getColumn();
+                TableModel model = (TableModel)e.getSource();
+
+                if(row >= 0 && column >= 0) { // Check if row and column are valid
+                    Object data = model.getValueAt(row, column);
+                    Object dataId = model.getValueAt(row, 0);
+                    String ColumnName = model.getColumnName(column);
+                    System.out.println("Row: " + row + ", ColumnName " + ColumnName + ", Data: " + data.toString()+ "ID " + dataId.toString());
+                }
+            }
+        });
 
         cusNameBox.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String name = (String) cusNameBox.getSelectedItem();
-                getCustomerByName(name);
+                customerId = getCustomerByName(name);
             }
         });
         cusNameBox2.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String name = (String) cusNameBox2.getSelectedItem();
-                getCustomerByName(name);
+                customerIdSearch = getCustomerByName(name);
             }
         });
         proNameBox.addActionListener(new ActionListener() {
@@ -697,7 +804,7 @@ public class Home extends JFrame {
         });
     }
 
-    public void getCustomerByName(String name) {
+    public Integer getCustomerByName(String name) {
         try {
             statement = connection.createStatement();
             String sqlCustomer = "SELECT id FROM customer WHERE CONCAT(fname, ' ', lname) =?";
@@ -705,16 +812,17 @@ public class Home extends JFrame {
             preparedStatement.setString(1, name);
 
             ResultSet resultCustomerName = preparedStatement.executeQuery();
-            //   System.out.println(resultCustomerName);
+            Integer customerId = 0;
             while (resultCustomerName.next()) {
                 //สร้างตัวแปลเพื่อมาเก็บ field
                 customerId = resultCustomerName.getInt(1);
             }
+            return customerId;
 
         } catch (Exception ex) {
             System.out.println(ex.getMessage() + "!!!!!");
+            return 0;
         }
-        System.out.println(customerId + "!!!");
     }
 
     public void setNewQuantityInStock(int productId) {
@@ -919,7 +1027,7 @@ public class Home extends JFrame {
 
 
         home.setTitle("Store Management");
-        home.setSize(1000, 600);
+        home.setSize(1280, 1024);
         home.setVisible(true);
         home.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 

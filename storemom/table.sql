@@ -36,10 +36,10 @@ DEFAULT CHARACTER SET = utf8mb3;
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `storemom`.`orders` (
   `orderId` INT NOT NULL AUTO_INCREMENT,
-  `totalAmount` INT NULL DEFAULT NULL,
+  `totalAmount` DOUBLE NULL DEFAULT NULL,
   `customer_id` INT NOT NULL,
   `orderDate` DATETIME NULL DEFAULT NULL,
-  `profit` VARCHAR(45) NULL DEFAULT NULL,
+  `profit` DOUBLE NULL DEFAULT NULL,
   PRIMARY KEY (`orderId`),
   UNIQUE INDEX `orderId_UNIQUE` (`orderId` ASC) VISIBLE,
   INDEX `fk_order_customer_idx` (`customer_id` ASC) VISIBLE,
@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS `storemom`.`product` (
   `productId` INT NOT NULL AUTO_INCREMENT,
   `productName` VARCHAR(45) NOT NULL,
   `quantityInStock` INT NULL DEFAULT NULL,
-  `price` INT NOT NULL,
+  `price` DOUBLE NOT NULL,
   `volume` VARCHAR(45) NULL DEFAULT NULL,
   PRIMARY KEY (`productId`))
 ENGINE = InnoDB
@@ -72,7 +72,7 @@ DEFAULT CHARACTER SET = utf8mb3;
 CREATE TABLE IF NOT EXISTS `storemom`.`orderdetail` (
   `orderDetailId` INT NOT NULL AUTO_INCREMENT,
   `quantityOrdered` INT NULL DEFAULT NULL,
-  `priceEach` INT NULL DEFAULT NULL,
+  `priceEach` DOUBLE NULL DEFAULT NULL,
   `productId` INT NOT NULL,
   `orderId` INT NOT NULL,
   PRIMARY KEY (`orderDetailId`),
