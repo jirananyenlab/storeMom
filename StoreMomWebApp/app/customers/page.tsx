@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, Pencil, Trash2, User, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Pencil, Trash2, User, Eye, ChevronLeft, ChevronRight, Users, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,7 +57,7 @@ export default function CustomersPage() {
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   
@@ -260,20 +260,32 @@ export default function CustomersPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-fade-in">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">จัดการลูกค้า</h1>
-        <p className="text-muted-foreground">เพิ่ม แก้ไข และจัดการข้อมูลลูกค้า</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+            จัดการลูกค้า
+          </h1>
+          <p className="text-muted-foreground mt-1">เพิ่ม แก้ไข และจัดการข้อมูลลูกค้า</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-500 shadow-lg shadow-violet-500/25">
+            <Users className="h-5 w-5 text-white" />
+          </div>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Form - Left Side (Add only) */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>เพิ่มลูกค้าใหม่</CardTitle>
+        <Card className="lg:col-span-1 border-0 shadow-xl shadow-gray-200/50 dark:shadow-none bg-white dark:bg-gray-900/50 rounded-2xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-violet-500/10 to-indigo-500/10 border-b border-violet-100 dark:border-violet-900/30">
+            <CardTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-violet-600" />
+              เพิ่มลูกค้าใหม่
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
@@ -286,7 +298,7 @@ export default function CustomersPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, fname: e.target.value })
                     }
-                    className={formErrors.fname ? "border-destructive" : ""}
+                    className={`rounded-xl border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all ${formErrors.fname ? "border-destructive" : ""}`}
                   />
                   {formErrors.fname && (
                     <p className="text-xs text-destructive">{formErrors.fname}</p>
@@ -302,7 +314,7 @@ export default function CustomersPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, lname: e.target.value })
                     }
-                    className={formErrors.lname ? "border-destructive" : ""}
+                    className={`rounded-xl border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all ${formErrors.lname ? "border-destructive" : ""}`}
                   />
                   {formErrors.lname && (
                     <p className="text-xs text-destructive">{formErrors.lname}</p>
@@ -320,7 +332,7 @@ export default function CustomersPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, phone: e.target.value })
                   }
-                  className={formErrors.phone ? "border-destructive" : ""}
+                  className={`rounded-xl border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all ${formErrors.phone ? "border-destructive" : ""}`}
                 />
                 {formErrors.phone && (
                   <p className="text-xs text-destructive">{formErrors.phone}</p>
@@ -336,7 +348,7 @@ export default function CustomersPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
                   }
-                  className={formErrors.email ? "border-destructive" : ""}
+                  className={`rounded-xl border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all ${formErrors.email ? "border-destructive" : ""}`}
                 />
                 {formErrors.email && (
                   <p className="text-xs text-destructive">{formErrors.email}</p>
@@ -351,10 +363,16 @@ export default function CustomersPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, address: e.target.value })
                   }
+                  className="rounded-xl border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all"
                 />
               </div>
 
-              <Button type="submit" className="w-full" disabled={submitting}>
+              <Button 
+                type="submit" 
+                className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/30 transition-all duration-300" 
+                disabled={submitting}
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
                 {submitting ? "กำลังบันทึก..." : "เพิ่มลูกค้า"}
               </Button>
             </form>
@@ -362,8 +380,8 @@ export default function CustomersPage() {
         </Card>
 
         {/* Table - Right Side */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
+        <Card className="lg:col-span-2 border-0 shadow-xl shadow-gray-200/50 dark:shadow-none bg-white dark:bg-gray-900/50 rounded-2xl overflow-hidden">
+          <CardHeader className="border-b border-gray-100 dark:border-gray-800">
             <CardTitle>รายชื่อลูกค้า</CardTitle>
             <div className="flex gap-2 mt-4">
               <div className="relative flex-1">
@@ -373,48 +391,56 @@ export default function CustomersPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  className="pl-9"
+                  className="pl-9 rounded-xl border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
                 />
               </div>
-              <Button onClick={handleSearch} size="icon">
+              <Button onClick={handleSearch} size="icon" className="rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 shadow-lg shadow-violet-500/25">
                 <Search className="h-4 w-4" />
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             {loading ? (
-              <div className="text-center py-8 text-muted-foreground">
-                กำลังโหลด...
+              <div className="text-center py-12 text-muted-foreground">
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-violet-500 border-r-transparent"></div>
+                <p className="mt-4">กำลังโหลด...</p>
               </div>
             ) : customers.length === 0 ? (
-              <div className="text-center py-8">
-                <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <div className="text-center py-12">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/20 to-indigo-500/20 mx-auto mb-4">
+                  <User className="h-8 w-8 text-violet-500" />
+                </div>
                 <p className="text-muted-foreground">ไม่พบลูกค้า</p>
               </div>
             ) : (
               <>
-                <div className="rounded-md border">
+                <div className="overflow-hidden">
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead>ชื่อ-นามสกุล</TableHead>
-                        <TableHead>เบอร์โทร</TableHead>
-                        <TableHead>อีเมล</TableHead>
-                        <TableHead className="w-[120px]">จัดการ</TableHead>
+                      <TableRow className="bg-gray-50/50 dark:bg-gray-800/50 hover:bg-gray-50/50">
+                        <TableHead className="font-semibold">ชื่อ-นามสกุล</TableHead>
+                        <TableHead className="font-semibold">เบอร์โทร</TableHead>
+                        <TableHead className="font-semibold">อีเมล</TableHead>
+                        <TableHead className="w-[120px] font-semibold">จัดการ</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {customers.map((customer) => (
                         <TableRow
                           key={customer.id}
-                          className="cursor-pointer hover:bg-muted/50"
+                          className="cursor-pointer hover:bg-violet-50/50 dark:hover:bg-violet-900/10 transition-colors"
                           onClick={() => handleRowClick(customer)}
                         >
                           <TableCell className="font-medium">
-                            {customer.fname} {customer.lname}
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 text-white text-sm font-bold">
+                                {customer.fname.charAt(0)}
+                              </div>
+                              {customer.fname} {customer.lname}
+                            </div>
                           </TableCell>
-                          <TableCell>{customer.phone || "-"}</TableCell>
-                          <TableCell>{customer.email || "-"}</TableCell>
+                          <TableCell className="text-muted-foreground">{customer.phone || "-"}</TableCell>
+                          <TableCell className="text-muted-foreground">{customer.email || "-"}</TableCell>
                           <TableCell>
                             <div className="flex gap-1">
                               <Button
@@ -422,22 +448,25 @@ export default function CustomersPage() {
                                 variant="ghost"
                                 onClick={(e) => openDetailDialog(customer, e)}
                                 title="ดูรายละเอียด"
+                                className="h-8 w-8 rounded-lg hover:bg-violet-100 dark:hover:bg-violet-900/30"
                               >
-                                <Eye className="h-4 w-4" />
+                                <Eye className="h-4 w-4 text-violet-600" />
                               </Button>
                               <Button
                                 size="icon"
                                 variant="ghost"
                                 onClick={(e) => openEditDialog(customer, e)}
                                 title="แก้ไข"
+                                className="h-8 w-8 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30"
                               >
-                                <Pencil className="h-4 w-4" />
+                                <Pencil className="h-4 w-4 text-blue-600" />
                               </Button>
                               <Button
                                 size="icon"
                                 variant="ghost"
                                 onClick={(e) => openDeleteDialog(customer, e)}
                                 title="ลบ"
+                                className="h-8 w-8 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30"
                               >
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
@@ -450,7 +479,7 @@ export default function CustomersPage() {
                 </div>
 
                 {/* Pagination */}
-                <div className="flex items-center justify-between mt-4">
+                <div className="flex items-center justify-between p-4 border-t border-gray-100 dark:border-gray-800">
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">แสดง</span>
                     <Select
@@ -460,7 +489,7 @@ export default function CustomersPage() {
                         setCurrentPage(1);
                       }}
                     >
-                      <SelectTrigger className="w-[70px] h-8">
+                      <SelectTrigger className="w-[70px] h-8 rounded-lg">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -479,19 +508,19 @@ export default function CustomersPage() {
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-8 w-8"
+                      className="h-8 w-8 rounded-lg"
                       onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                       disabled={currentPage === 1}
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
-                    <span className="text-sm">
+                    <span className="text-sm px-2">
                       หน้า {currentPage} / {totalPages || 1}
                     </span>
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-8 w-8"
+                      className="h-8 w-8 rounded-lg"
                       onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                       disabled={currentPage === totalPages || totalPages === 0}
                     >
@@ -507,15 +536,17 @@ export default function CustomersPage() {
 
       {/* Detail Dialog */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl">
           <DialogHeader>
             <DialogTitle>รายละเอียดลูกค้า</DialogTitle>
           </DialogHeader>
           {selectedCustomer && (
             <div className="space-y-4 py-4">
               <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                  <User className="h-8 w-8 text-primary" />
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-500 shadow-lg shadow-violet-500/25">
+                  <span className="text-2xl font-bold text-white">
+                    {selectedCustomer.fname.charAt(0)}
+                  </span>
                 </div>
                 <div>
                   <h3 className="text-xl font-semibold">
@@ -526,29 +557,32 @@ export default function CustomersPage() {
               </div>
 
               <div className="grid gap-3 pt-4 border-t">
-                <div className="flex justify-between">
+                <div className="flex justify-between py-2 px-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
                   <span className="text-muted-foreground">เบอร์โทร</span>
-                  <span>{selectedCustomer.phone || "-"}</span>
+                  <span className="font-medium">{selectedCustomer.phone || "-"}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between py-2 px-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
                   <span className="text-muted-foreground">อีเมล</span>
-                  <span>{selectedCustomer.email || "-"}</span>
+                  <span className="font-medium">{selectedCustomer.email || "-"}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between py-2 px-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
                   <span className="text-muted-foreground">ที่อยู่</span>
-                  <span>{selectedCustomer.address || "-"}</span>
+                  <span className="font-medium">{selectedCustomer.address || "-"}</span>
                 </div>
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)} className="rounded-xl">
               ปิด
             </Button>
-            <Button onClick={() => {
-              setIsDetailDialogOpen(false);
-              if (selectedCustomer) openEditDialog(selectedCustomer);
-            }}>
+            <Button 
+              onClick={() => {
+                setIsDetailDialogOpen(false);
+                if (selectedCustomer) openEditDialog(selectedCustomer);
+              }}
+              className="rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600"
+            >
               <Pencil className="h-4 w-4 mr-2" />
               แก้ไข
             </Button>
@@ -558,7 +592,7 @@ export default function CustomersPage() {
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl">
           <DialogHeader>
             <DialogTitle>แก้ไขลูกค้า</DialogTitle>
             <DialogDescription>
@@ -577,7 +611,7 @@ export default function CustomersPage() {
                   onChange={(e) =>
                     setEditFormData({ ...editFormData, fname: e.target.value })
                   }
-                  className={editFormErrors.fname ? "border-destructive" : ""}
+                  className={`rounded-xl ${editFormErrors.fname ? "border-destructive" : ""}`}
                 />
                 {editFormErrors.fname && (
                   <p className="text-xs text-destructive">{editFormErrors.fname}</p>
@@ -593,7 +627,7 @@ export default function CustomersPage() {
                   onChange={(e) =>
                     setEditFormData({ ...editFormData, lname: e.target.value })
                   }
-                  className={editFormErrors.lname ? "border-destructive" : ""}
+                  className={`rounded-xl ${editFormErrors.lname ? "border-destructive" : ""}`}
                 />
                 {editFormErrors.lname && (
                   <p className="text-xs text-destructive">{editFormErrors.lname}</p>
@@ -611,7 +645,7 @@ export default function CustomersPage() {
                 onChange={(e) =>
                   setEditFormData({ ...editFormData, phone: e.target.value })
                 }
-                className={editFormErrors.phone ? "border-destructive" : ""}
+                className={`rounded-xl ${editFormErrors.phone ? "border-destructive" : ""}`}
               />
               {editFormErrors.phone && (
                 <p className="text-xs text-destructive">{editFormErrors.phone}</p>
@@ -627,7 +661,7 @@ export default function CustomersPage() {
                 onChange={(e) =>
                   setEditFormData({ ...editFormData, email: e.target.value })
                 }
-                className={editFormErrors.email ? "border-destructive" : ""}
+                className={`rounded-xl ${editFormErrors.email ? "border-destructive" : ""}`}
               />
               {editFormErrors.email && (
                 <p className="text-xs text-destructive">{editFormErrors.email}</p>
@@ -642,14 +676,19 @@ export default function CustomersPage() {
                 onChange={(e) =>
                   setEditFormData({ ...editFormData, address: e.target.value })
                 }
+                className="rounded-xl"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} className="rounded-xl">
               ยกเลิก
             </Button>
-            <Button onClick={handleEditSubmit} disabled={submitting}>
+            <Button 
+              onClick={handleEditSubmit} 
+              disabled={submitting}
+              className="rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600"
+            >
               {submitting ? "กำลังบันทึก..." : "บันทึก"}
             </Button>
           </DialogFooter>
@@ -658,9 +697,9 @@ export default function CustomersPage() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl">
           <DialogHeader>
-            <DialogTitle>ยืนยันการลบ</DialogTitle>
+            <DialogTitle className="text-destructive">ยืนยันการลบ</DialogTitle>
             <DialogDescription>
               คุณต้องการลบลูกค้า &quot;{deletingCustomer?.fname} {deletingCustomer?.lname}&quot; ใช่หรือไม่?
               การดำเนินการนี้ไม่สามารถย้อนกลับได้
@@ -670,6 +709,7 @@ export default function CustomersPage() {
             <Button
               variant="outline"
               onClick={() => setIsDeleteDialogOpen(false)}
+              className="rounded-xl"
             >
               ยกเลิก
             </Button>
@@ -677,6 +717,7 @@ export default function CustomersPage() {
               variant="destructive"
               onClick={handleDelete}
               disabled={submitting}
+              className="rounded-xl"
             >
               {submitting ? "กำลังลบ..." : "ลบ"}
             </Button>

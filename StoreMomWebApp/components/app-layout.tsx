@@ -9,7 +9,7 @@ import {
   Package,
   ShoppingCart,
   Menu,
-  Store,
+  Sparkles,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -57,43 +57,60 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <TooltipProvider>
-      <div className="flex min-h-screen bg-background">
+      <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900">
         {/* Desktop Sidebar */}
-        <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 border-r bg-card">
+        <aside className="hidden lg:flex lg:flex-col lg:w-72 lg:fixed lg:inset-y-0 border-r border-gray-200/50 dark:border-gray-800/50 glass">
           {/* Logo */}
-          <div className="flex h-16 items-center gap-2 px-6 border-b">
-            <Store className="h-6 w-6 text-primary" />
-            <span className="text-lg font-bold">StoreMom</span>
+          <div className="flex h-20 items-center gap-3 px-6 border-b border-gray-200/50 dark:border-gray-800/50">
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 shadow-lg shadow-violet-500/25">
+              <Sparkles className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <span className="text-xl font-bold bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+                StoreMom
+              </span>
+              <p className="text-xs text-muted-foreground">ระบบจัดการร้านค้า</p>
+            </div>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 space-y-1 px-3 py-4">
+          <nav className="flex-1 space-y-2 px-4 py-6">
+            <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+              เมนูหลัก
+            </p>
             {navigation.map((item) => {
               const isActive = pathname === item.href
               return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                  )}
-                >
-                  <item.icon className="h-5 w-5" />
-                  {item.name}
-                </Link>
+                <Tooltip key={item.name}>
+                  <TooltipTrigger asChild>
+                    <Link
+                      href={item.href}
+                      className={cn(
+                        "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
+                        isActive
+                          ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25"
+                          : "text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800/50 hover:text-foreground"
+                      )}
+                    >
+                      <item.icon className={cn("h-5 w-5", isActive && "text-white")} />
+                      {item.name}
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="lg:hidden">
+                    {item.name}
+                  </TooltipContent>
+                </Tooltip>
               )
             })}
           </nav>
 
           {/* Footer */}
-          <div className="border-t p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">
-                v1.0.0
-              </span>
+          <div className="border-t border-gray-200/50 dark:border-gray-800/50 p-4">
+            <div className="flex items-center justify-between px-2">
+              <div>
+                <p className="text-xs font-medium text-foreground">StoreMom</p>
+                <p className="text-xs text-muted-foreground">v1.0.0</p>
+              </div>
               <ThemeToggle />
             </div>
           </div>
@@ -101,13 +118,23 @@ export function AppLayout({ children }: AppLayoutProps) {
 
         {/* Mobile Sidebar */}
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-          <SheetContent side="left" className="w-64 p-0">
+          <SheetContent side="left" className="w-72 p-0 glass">
             <SheetTitle className="sr-only">เมนูนำทาง</SheetTitle>
-            <div className="flex h-16 items-center gap-2 px-6 border-b">
-              <Store className="h-6 w-6 text-primary" />
-              <span className="text-lg font-bold">StoreMom</span>
+            <div className="flex h-20 items-center gap-3 px-6 border-b border-gray-200/50 dark:border-gray-800/50">
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 shadow-lg shadow-violet-500/25">
+                <Sparkles className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <span className="text-xl font-bold bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+                  StoreMom
+                </span>
+                <p className="text-xs text-muted-foreground">ระบบจัดการร้านค้า</p>
+              </div>
             </div>
-            <nav className="flex-1 space-y-1 px-3 py-4">
+            <nav className="flex-1 space-y-2 px-4 py-6">
+              <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+                เมนูหลัก
+              </p>
               {navigation.map((item) => {
                 const isActive = pathname === item.href
                 return (
@@ -116,22 +143,25 @@ export function AppLayout({ children }: AppLayoutProps) {
                     href={item.href}
                     onClick={() => setSidebarOpen(false)}
                     className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                      "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200",
                       isActive
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25"
+                        : "text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800/50 hover:text-foreground"
                     )}
                   >
-                    <item.icon className="h-5 w-5" />
+                    <item.icon className={cn("h-5 w-5", isActive && "text-white")} />
                     {item.name}
                   </Link>
                 )
               })}
             </nav>
-            <Separator />
+            <Separator className="opacity-50" />
             <div className="p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">v1.0.0</span>
+              <div className="flex items-center justify-between px-2">
+                <div>
+                  <p className="text-xs font-medium text-foreground">StoreMom</p>
+                  <p className="text-xs text-muted-foreground">v1.0.0</p>
+                </div>
                 <ThemeToggle />
               </div>
             </div>
@@ -139,13 +169,13 @@ export function AppLayout({ children }: AppLayoutProps) {
         </Sheet>
 
         {/* Main Content */}
-        <div className="flex-1 lg:pl-64">
+        <div className="flex-1 lg:pl-72">
           {/* Header */}
-          <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 lg:px-6">
+          <header className="sticky top-0 z-40 flex h-14 items-center gap-4 px-4 lg:px-8">
             {/* Mobile Menu Button */}
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="lg:hidden">
+                <Button variant="ghost" size="icon" className="lg:hidden rounded-xl">
                   <Menu className="h-5 w-5" />
                   <span className="sr-only">เปิดเมนู</span>
                 </Button>
@@ -157,14 +187,16 @@ export function AppLayout({ children }: AppLayoutProps) {
               <BreadcrumbList>
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
-                    <Link href="/">หน้าหลัก</Link>
+                    <Link href="/" className="text-muted-foreground hover:text-violet-600 transition-colors">
+                      หน้าหลัก
+                    </Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 {pathname !== "/" && (
                   <>
                     <BreadcrumbSeparator />
                     <BreadcrumbItem>
-                      <BreadcrumbPage>{currentPageTitle}</BreadcrumbPage>
+                      <BreadcrumbPage className="font-medium">{currentPageTitle}</BreadcrumbPage>
                     </BreadcrumbItem>
                   </>
                 )}
@@ -175,7 +207,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <h1 className="text-lg font-semibold md:hidden">{currentPageTitle}</h1>
 
             {/* Right Side */}
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-3">
               <div className="hidden lg:block">
                 <ThemeToggle />
               </div>
@@ -183,7 +215,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </header>
 
           {/* Page Content */}
-          <main className="flex-1 p-4 lg:p-6">
+          <main className="flex-1 p-4 lg:p-8 animate-fade-in">
             {children}
           </main>
         </div>

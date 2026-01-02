@@ -3,18 +3,38 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
 // GET orders with pagination
-// Query params: page (default 1), limit (default 10), customerId (optional)
+// Query params: page (default 1), limit (default 10), customerId (optional), status (optional), productIds (optional, comma-separated)
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const customerId = searchParams.get('customerId');
+    const status = searchParams.get('status');
+    const productIds = searchParams.get('productIds');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const skip = (page - 1) * limit;
 
-    const where = customerId ? {
-      customerId: parseInt(customerId)
-    } : undefined;
+    // Build where clause dynamically
+    const where: Prisma.OrderWhereInput = {};
+    if (customerId) {
+      where.customerId = parseInt(customerId);
+    }
+    if (status) {
+      where.status = status;
+    }
+    // Filter by product IDs - find orders that contain any of these products
+    if (productIds) {
+      const productIdArray = productIds.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+      if (productIdArray.length > 0) {
+        where.orderDetails = {
+          some: {
+            productId: {
+              in: productIdArray
+            }
+          }
+        };
+      }
+    }
 
     // Get total count and data in parallel
     const [total, orders] = await Promise.all([

@@ -1,18 +1,12 @@
 import type { Metadata } from "next";
-import { Sarabun } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AppLayout } from "@/components/app-layout";
 import { Toaster } from "@/components/ui/sonner";
 
-const sarabun = Sarabun({ 
-  subsets: ["thai", "latin"],
-  weight: ["300", "400", "500", "600", "700"],
-});
-
 export const metadata: Metadata = {
   title: "StoreMom - ระบบจัดการร้านค้า",
-  description: "ระบบจัดการสินค้าและคลังสินค้า",
+  description: "ระบบจัดการสินค้าและคลังสินค้าสมัยใหม่",
 };
 
 export default function RootLayout({
@@ -22,7 +16,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="th" suppressHydrationWarning>
-      <body className={sarabun.className}>
+      <body className="antialiased">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { Users, Package, ShoppingCart, AlertTriangle, TrendingUp, Trophy } from "lucide-react";
+import { Users, Package, ShoppingCart, AlertTriangle, TrendingUp, Trophy, ArrowUpRight, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -81,7 +81,6 @@ export default function HomePage() {
     loading: true,
   });
 
-  // Fetch monthly sales data
   const fetchMonthlySales = useCallback((month: number, year: number) => {
     setMonthlySales((prev) => ({ ...prev, loading: true }));
     fetch(`/api/stats/monthly-sales?month=${month}&year=${year}`)
@@ -111,7 +110,6 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    // Fetch each stat independently
     fetch("/api/stats/customers")
       .then((res) => res.json())
       .then((data) => setCustomersStats({ count: data.count || 0, loading: false }))
@@ -132,7 +130,6 @@ export default function HomePage() {
       .then((data) => setLowStockStats({ count: data.count || 0, loading: false }))
       .catch(() => setLowStockStats({ count: 0, loading: false }));
 
-    // Fetch available periods
     fetch("/api/stats/available-periods")
       .then((res) => res.json())
       .then((data) => {
@@ -141,7 +138,6 @@ export default function HomePage() {
           current: data.current || null,
           loading: false,
         });
-        // Set default selected period and fetch sales data
         if (data.current) {
           const periodKey = `${data.current.year}-${data.current.month}`;
           setSelectedPeriod(periodKey);
@@ -154,7 +150,6 @@ export default function HomePage() {
       });
   }, [fetchMonthlySales]);
 
-  // Handle period change
   const handlePeriodChange = (value: string) => {
     setSelectedPeriod(value);
     const [year, month] = value.split("-").map(Number);
@@ -165,22 +160,24 @@ export default function HomePage() {
 
   const statCards = [
     {
-      title: "ลูกค้า",
+      title: "ลูกค้าทั้งหมด",
       value: customersStats.count,
       loading: customersStats.loading,
       icon: Users,
       href: "/customers",
-      color: "text-blue-500",
-      bgColor: "bg-blue-500/10",
+      gradient: "from-blue-500 to-cyan-500",
+      bgGradient: "from-blue-500/10 to-cyan-500/10",
+      iconBg: "bg-blue-500",
     },
     {
-      title: "สินค้า",
+      title: "สินค้าทั้งหมด",
       value: productsStats.count,
       loading: productsStats.loading,
       icon: Package,
       href: "/products",
-      color: "text-green-500",
-      bgColor: "bg-green-500/10",
+      gradient: "from-emerald-500 to-teal-500",
+      bgGradient: "from-emerald-500/10 to-teal-500/10",
+      iconBg: "bg-emerald-500",
     },
     {
       title: "คำสั่งซื้อ",
@@ -188,8 +185,9 @@ export default function HomePage() {
       loading: ordersStats.loading,
       icon: ShoppingCart,
       href: "/orders",
-      color: "text-purple-500",
-      bgColor: "bg-purple-500/10",
+      gradient: "from-violet-500 to-purple-500",
+      bgGradient: "from-violet-500/10 to-purple-500/10",
+      iconBg: "bg-violet-500",
     },
     {
       title: "สินค้าใกล้หมด",
@@ -197,41 +195,55 @@ export default function HomePage() {
       loading: lowStockStats.loading,
       icon: AlertTriangle,
       href: "/products",
-      color: "text-orange-500",
-      bgColor: "bg-orange-500/10",
+      gradient: "from-orange-500 to-amber-500",
+      bgGradient: "from-orange-500/10 to-amber-500/10",
+      iconBg: "bg-orange-500",
     },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Welcome Section */}
-      <div>
-        <h1 className="text-3xl font-bold">ยินดีต้อนรับสู่ StoreMom</h1>
-        <p className="text-muted-foreground mt-1">
-          ระบบจัดการร้านค้าและคลังสินค้าครบวงจร
-        </p>
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 p-8 text-white">
+        <div className="absolute top-0 right-0 -mt-4 -mr-4 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+        <div className="absolute bottom-0 left-0 -mb-4 -ml-4 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/20 backdrop-blur">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <h1 className="text-3xl font-bold">ยินดีต้อนรับสู่ StoreMom</h1>
+          </div>
+          <p className="text-white/80 text-lg max-w-xl">
+            ระบบจัดการร้านค้าและคลังสินค้าครบวงจร ออกแบบมาเพื่อธุรกิจของคุณ
+          </p>
+        </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {statCards.map((stat) => (
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {statCards.map((stat, index) => (
           <Link key={stat.title} href={stat.href}>
-            <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <Card className={`relative overflow-hidden border-0 bg-gradient-to-br ${stat.bgGradient} hover-lift cursor-pointer group`}>
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-gradient-to-br ${stat.gradient} opacity-20 blur-2xl group-hover:opacity-30 transition-opacity" />
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {stat.title}
                 </CardTitle>
-                <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                <div className={`p-2.5 rounded-xl ${stat.iconBg} shadow-lg`}>
+                  <stat.icon className="h-4 w-4 text-white" />
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {stat.loading ? (
-                    <div className="h-8 w-16 bg-muted animate-pulse rounded" />
-                  ) : (
-                    stat.value.toLocaleString()
-                  )}
+                <div className="flex items-end justify-between">
+                  <div className="text-3xl font-bold">
+                    {stat.loading ? (
+                      <div className="h-9 w-16 bg-muted/50 animate-pulse rounded-lg" />
+                    ) : (
+                      stat.value.toLocaleString()
+                    )}
+                  </div>
+                  <ArrowUpRight className="h-5 w-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                 </div>
               </CardContent>
             </Card>
@@ -240,26 +252,25 @@ export default function HomePage() {
       </div>
 
       {/* Monthly Sales Summary */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* Sales Summary Card */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div className="flex items-center gap-3">
-              <CardTitle className="text-lg font-semibold">
-                สรุปยอดขาย
-              </CardTitle>
+        <Card className="border-0 shadow-xl shadow-gray-200/50 dark:shadow-none bg-white dark:bg-gray-900/50">
+          <CardHeader className="flex flex-row items-start justify-between pb-2">
+            <div className="space-y-1">
+              <CardTitle className="text-xl font-bold">สรุปยอดขาย</CardTitle>
               {periodsData.loading ? (
-                <div className="h-9 w-40 bg-muted animate-pulse rounded" />
+                <div className="h-10 w-44 bg-muted animate-pulse rounded-lg" />
               ) : (
                 <Select value={selectedPeriod} onValueChange={handlePeriodChange}>
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-[200px] mt-2 rounded-xl border-gray-200 dark:border-gray-800">
                     <SelectValue placeholder="เลือกเดือน" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-xl">
                     {periodsData.periods.map((period) => (
                       <SelectItem
                         key={`${period.year}-${period.month}`}
                         value={`${period.year}-${period.month}`}
+                        className="rounded-lg"
                       >
                         {period.monthName} {period.yearBE}
                       </SelectItem>
@@ -268,44 +279,47 @@ export default function HomePage() {
                 </Select>
               )}
             </div>
-            <div className="p-2 rounded-lg bg-emerald-500/10">
-              <TrendingUp className="h-5 w-5 text-emerald-500" />
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/25">
+              <TrendingUp className="h-6 w-6 text-white" />
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             {monthlySales.loading ? (
-              <div className="space-y-3">
-                <div className="h-10 w-32 bg-muted animate-pulse rounded" />
-                <div className="h-4 w-24 bg-muted animate-pulse rounded" />
-                <div className="h-4 w-28 bg-muted animate-pulse rounded" />
+              <div className="space-y-4">
+                <div className="h-12 w-48 bg-muted animate-pulse rounded-lg" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="h-16 bg-muted animate-pulse rounded-lg" />
+                  <div className="h-16 bg-muted animate-pulse rounded-lg" />
+                </div>
               </div>
             ) : (
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">ยอดขายรวม</p>
-                  <p className="text-3xl font-bold text-emerald-600">
+              <div className="space-y-6">
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10">
+                  <p className="text-sm text-muted-foreground mb-1">ยอดขายรวม</p>
+                  <p className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
                     {monthlySales.summary.totalSales.toLocaleString("th-TH", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
-                    })}{" "}
-                    <span className="text-lg font-normal">บาท</span>
+                    })}
+                    <span className="text-lg font-normal text-muted-foreground ml-2">บาท</span>
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">กำไร</p>
-                    <p className={`text-xl font-semibold ${monthlySales.summary.totalProfit >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+                    <p className="text-sm text-muted-foreground mb-1">กำไร</p>
+                    <p className={`text-2xl font-bold ${monthlySales.summary.totalProfit >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                       {monthlySales.summary.totalProfit.toLocaleString("th-TH", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
-                      })}{" "}
-                      บาท
+                      })}
+                      <span className="text-sm font-normal ml-1">บาท</span>
                     </p>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">จำนวนออเดอร์</p>
-                    <p className="text-xl font-semibold">
-                      {monthlySales.summary.orderCount.toLocaleString()} รายการ
+                  <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+                    <p className="text-sm text-muted-foreground mb-1">จำนวนออเดอร์</p>
+                    <p className="text-2xl font-bold">
+                      {monthlySales.summary.orderCount.toLocaleString()}
+                      <span className="text-sm font-normal text-muted-foreground ml-1">รายการ</span>
                     </p>
                   </div>
                 </div>
@@ -315,67 +329,62 @@ export default function HomePage() {
         </Card>
 
         {/* Top Selling Products Card */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-lg font-semibold">
-              {monthlySales.loading ? (
-                "สินค้าขายดี"
-              ) : (
-                `สินค้าขายดี ${monthlySales.monthName || ""}`
-              )}
-            </CardTitle>
-            <div className="p-2 rounded-lg bg-amber-500/10">
-              <Trophy className="h-5 w-5 text-amber-500" />
+        <Card className="border-0 shadow-xl shadow-gray-200/50 dark:shadow-none bg-white dark:bg-gray-900/50">
+          <CardHeader className="flex flex-row items-start justify-between pb-4">
+            <div>
+              <CardTitle className="text-xl font-bold">
+                สินค้าขายดี
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                {monthlySales.monthName || "เดือนนี้"}
+              </p>
+            </div>
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg shadow-amber-500/25">
+              <Trophy className="h-6 w-6 text-white" />
             </div>
           </CardHeader>
           <CardContent>
             {monthlySales.loading ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="h-8 bg-muted animate-pulse rounded" />
+                  <div key={i} className="h-14 bg-muted animate-pulse rounded-xl" />
                 ))}
               </div>
             ) : monthlySales.topSellingProducts.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">
-                ยังไม่มีข้อมูลการขายในเดือนที่เลือก
-              </p>
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="p-4 rounded-full bg-gray-100 dark:bg-gray-800 mb-4">
+                  <Package className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground">ยังไม่มีข้อมูลการขายในเดือนที่เลือก</p>
+              </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">#</TableHead>
-                    <TableHead>สินค้า</TableHead>
-                    <TableHead className="text-right">ขายได้</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {monthlySales.topSellingProducts.map((product, index) => (
-                    <TableRow key={product.productId}>
-                      <TableCell>
-                        <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
-                          index === 0 ? "bg-amber-500 text-white" :
-                          index === 1 ? "bg-gray-400 text-white" :
-                          index === 2 ? "bg-amber-700 text-white" :
-                          "bg-muted text-muted-foreground"
-                        }`}>
-                          {index + 1}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{product.productName}</p>
-                          {product.volume && (
-                            <p className="text-xs text-muted-foreground">{product.volume}</p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right font-semibold">
-                        {product.quantitySold.toLocaleString()} ชิ้น
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="space-y-3">
+                {monthlySales.topSellingProducts.map((product, index) => (
+                  <div
+                    key={product.productId}
+                    className="flex items-center gap-4 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    <div className={`flex items-center justify-center w-10 h-10 rounded-xl text-white font-bold text-sm ${
+                      index === 0 ? "bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg shadow-amber-500/30" :
+                      index === 1 ? "bg-gradient-to-br from-gray-400 to-gray-500 shadow-lg shadow-gray-500/30" :
+                      index === 2 ? "bg-gradient-to-br from-amber-600 to-amber-800 shadow-lg shadow-amber-700/30" :
+                      "bg-gray-200 dark:bg-gray-700 text-muted-foreground"
+                    }`}>
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{product.productName}</p>
+                      {product.volume && (
+                        <p className="text-xs text-muted-foreground">{product.volume}</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold">{product.quantitySold.toLocaleString()}</p>
+                      <p className="text-xs text-muted-foreground">ชิ้น</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </CardContent>
         </Card>
@@ -383,17 +392,17 @@ export default function HomePage() {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-lg font-semibold mb-4">การดำเนินการด่วน</h2>
-        <div className="grid gap-4 md:grid-cols-3">
+        <h2 className="text-xl font-bold mb-4">การดำเนินการด่วน</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Link href="/customers">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer group">
-              <CardContent className="pt-6">
+            <Card className="border-0 shadow-lg hover-lift cursor-pointer group bg-white dark:bg-gray-900/50 overflow-hidden">
+              <CardContent className="p-6">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
-                    <Users className="h-6 w-6 text-blue-500" />
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/25 group-hover:scale-110 transition-transform">
+                    <Users className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">จัดการลูกค้า</h3>
+                    <h3 className="font-bold text-lg">จัดการลูกค้า</h3>
                     <p className="text-sm text-muted-foreground">
                       เพิ่ม แก้ไข ลบข้อมูลลูกค้า
                     </p>
@@ -404,14 +413,14 @@ export default function HomePage() {
           </Link>
 
           <Link href="/products">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer group">
-              <CardContent className="pt-6">
+            <Card className="border-0 shadow-lg hover-lift cursor-pointer group bg-white dark:bg-gray-900/50 overflow-hidden">
+              <CardContent className="p-6">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
-                    <Package className="h-6 w-6 text-green-500" />
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/25 group-hover:scale-110 transition-transform">
+                    <Package className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">จัดการสินค้า</h3>
+                    <h3 className="font-bold text-lg">จัดการสินค้า</h3>
                     <p className="text-sm text-muted-foreground">
                       เพิ่ม แก้ไข จัดการสต็อก
                     </p>
@@ -422,14 +431,14 @@ export default function HomePage() {
           </Link>
 
           <Link href="/orders">
-            <Card className="hover:shadow-md transition-shadow cursor-pointer group">
-              <CardContent className="pt-6">
+            <Card className="border-0 shadow-lg hover-lift cursor-pointer group bg-white dark:bg-gray-900/50 overflow-hidden">
+              <CardContent className="p-6">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
-                    <ShoppingCart className="h-6 w-6 text-purple-500" />
+                  <div className="p-4 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-500 shadow-lg shadow-violet-500/25 group-hover:scale-110 transition-transform">
+                    <ShoppingCart className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">สร้างคำสั่งซื้อ</h3>
+                    <h3 className="font-bold text-lg">สร้างคำสั่งซื้อ</h3>
                     <p className="text-sm text-muted-foreground">
                       สร้างคำสั่งซื้อใหม่
                     </p>

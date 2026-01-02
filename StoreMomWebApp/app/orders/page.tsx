@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Trash2, ShoppingCart, Package, X, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Trash2, ShoppingCart, Package, X, Eye, ChevronLeft, ChevronRight, ShoppingBag, Receipt, Pencil, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,12 +30,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "@/components/ui/sonner";
-
-interface Customer {
-  id: number;
-  fname: string;
-  lname: string;
-}
+import { CustomerSelect } from "@/components/customer-select";
+import { ProductSelect } from "@/components/product-select";
+import { ProductMultiSelect } from "@/components/product-multi-select";
 
 interface Product {
   productId: number;
@@ -56,6 +53,7 @@ interface OrderItem {
 
 interface Order {
   orderId: number;
+  customer_id?: number;
   customerName: string;
   totalAmount: number;
   profit: number;
@@ -65,8 +63,6 @@ interface Order {
 }
 
 export default function OrdersPage() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -76,9 +72,15 @@ export default function OrdersPage() {
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
+  // Filters
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterCustomerId, setFilterCustomerId] = useState("");
+  const [filterProductIds, setFilterProductIds] = useState<string[]>([]);
+
   // Form states
   const [customerId, setCustomerId] = useState("");
   const [selectedProduct, setSelectedProduct] = useState("");
+  const [selectedProductData, setSelectedProductData] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState("");
   const [originalPrice, setOriginalPrice] = useState("");
   const [sellingPrice, setSellingPrice] = useState("");
@@ -91,45 +93,41 @@ export default function OrdersPage() {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [deletingOrder, setDeletingOrder] = useState<Order | null>(null);
   const [editingStatusOrder, setEditingStatusOrder] = useState<Order | null>(null);
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [newStatus, setNewStatus] = useState("");
+  const [editCustomerId, setEditCustomerId] = useState("");
+  const [editPaymentStatus, setEditPaymentStatus] = useState("");
+
+  // Edit order items states
+  const [editOrderItems, setEditOrderItems] = useState<OrderItem[]>([]);
+  const [editSelectedProduct, setEditSelectedProduct] = useState("");
+  const [editSelectedProductData, setEditSelectedProductData] = useState<Product | null>(null);
+  const [editQuantity, setEditQuantity] = useState("");
+  const [editOriginalPrice, setEditOriginalPrice] = useState("");
+  const [editSellingPrice, setEditSellingPrice] = useState("");
+  const [editFormErrors, setEditFormErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    // Fetch customers for dropdown
-    fetch("/api/customers?limit=1000")
-      .then((res) => res.json())
-      .then((result) => {
-        setCustomers(result.data ? result.data : (Array.isArray(result) ? result : []));
-      })
-      .catch(() => {
-        toast.error("เกิดข้อผิดพลาด", {
-          description: "ไม่สามารถโหลดข้อมูลลูกค้าได้",
-        });
-      });
-
-    // Fetch products for dropdown
-    fetch("/api/products?limit=1000")
-      .then((res) => res.json())
-      .then((result) => {
-        setProducts(result.data ? result.data : (Array.isArray(result) ? result : []));
-      })
-      .catch(() => {
-        toast.error("เกิดข้อผิดพลาด", {
-          description: "ไม่สามารถโหลดข้อมูลสินค้าได้",
-        });
-      });
-  }, []);
-
-  useEffect(() => {
-    // Fetch orders with pagination
+    // Fetch orders with pagination and filters
     const fetchOrders = async () => {
       try {
         setLoading(true);
         const params = new URLSearchParams();
         params.set('page', currentPage.toString());
         params.set('limit', itemsPerPage.toString());
+        if (filterStatus && filterStatus !== "all") {
+          params.set('status', filterStatus);
+        }
+        if (filterCustomerId) {
+          params.set('customerId', filterCustomerId);
+        }
+        if (filterProductIds.length > 0) {
+          params.set('productIds', filterProductIds.join(','));
+        }
 
         const response = await fetch(`/api/orders?${params.toString()}`);
         const result = await response.json();
@@ -151,7 +149,7 @@ export default function OrdersPage() {
     };
 
     fetchOrders();
-  }, [currentPage, itemsPerPage]);
+  }, [currentPage, itemsPerPage, filterStatus, filterCustomerId, filterProductIds]);
 
   // Refetch orders
   const refetchOrders = async () => {
@@ -180,22 +178,11 @@ export default function OrdersPage() {
     }
   };
 
-  // Refetch products
-  const refetchProducts = async () => {
-    try {
-      const response = await fetch("/api/products?limit=1000");
-      const result = await response.json();
-      setProducts(result.data ? result.data : (Array.isArray(result) ? result : []));
-    } catch (error) {
-      // Silent fail for products refetch
-    }
-  };
-
   // Add item to order
   const addItem = () => {
     setFormErrors({});
 
-    if (!selectedProduct) {
+    if (!selectedProduct || !selectedProductData) {
       setFormErrors({ product: "กรุณาเลือกสินค้า" });
       return;
     }
@@ -212,10 +199,7 @@ export default function OrdersPage() {
       return;
     }
 
-    const product = products.find(
-      (p) => p.productId.toString() === selectedProduct
-    );
-    if (!product) return;
+    const product = selectedProductData;
 
     const existingItem = orderItems.find((i) => i.productId === product.productId);
     const alreadyInCart = existingItem ? existingItem.quantityOrdered : 0;
@@ -253,6 +237,7 @@ export default function OrdersPage() {
     }
 
     setSelectedProduct("");
+    setSelectedProductData(null);
     setQuantity("");
     setOriginalPrice("");
     setSellingPrice("");
@@ -306,7 +291,6 @@ export default function OrdersPage() {
       setOrderItems([]);
       setPaymentStatus("pending");
       refetchOrders();
-      refetchProducts();
     } catch (error) {
       toast.error("เกิดข้อผิดพลาด", {
         description: error instanceof Error ? error.message : "ไม่สามารถสร้างออเดอร์ได้",
@@ -390,6 +374,160 @@ export default function OrdersPage() {
     }
   };
 
+  // Open edit dialog
+  const openEditDialog = async (order: Order, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    try {
+      const response = await fetch(`/api/orders/${order.orderId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setEditingOrder(data);
+        setEditCustomerId(data.customer_id?.toString() || "");
+        setEditPaymentStatus(data.status);
+        // Load order items for editing
+        if (data.items) {
+          setEditOrderItems(data.items.map((item: OrderItem) => ({
+            ...item,
+            subtotal: item.priceEach * item.quantityOrdered
+          })));
+        } else {
+          setEditOrderItems([]);
+        }
+        setEditSelectedProduct("");
+        setEditQuantity("");
+        setEditOriginalPrice("");
+        setEditSellingPrice("");
+        setEditFormErrors({});
+        setIsEditDialogOpen(true);
+      }
+    } catch (error) {
+      toast.error("เกิดข้อผิดพลาด", {
+        description: "ไม่สามารถโหลดข้อมูลออเดอร์ได้",
+      });
+    }
+  };
+
+  // Add item to edit order
+  const addEditItem = () => {
+    setEditFormErrors({});
+
+    if (!editSelectedProduct || !editSelectedProductData) {
+      setEditFormErrors({ product: "กรุณาเลือกสินค้า" });
+      return;
+    }
+
+    const quantityNum = parseInt(editQuantity);
+    if (!editQuantity || quantityNum <= 0) {
+      setEditFormErrors({ quantity: "กรุณากรอกจำนวนที่ถูกต้อง" });
+      return;
+    }
+
+    const priceNum = parseFloat(editSellingPrice);
+    if (!editSellingPrice || priceNum < 0) {
+      setEditFormErrors({ price: "กรุณากรอกราคาขายที่ถูกต้อง" });
+      return;
+    }
+
+    const product = editSelectedProductData;
+
+    const existingItem = editOrderItems.find((i) => i.productId === product.productId);
+    const alreadyInCart = existingItem ? existingItem.quantityOrdered : 0;
+    
+    // Check current order's original quantity for this product
+    const originalItem = editingOrder?.items?.find((i: OrderItem) => i.productId === product.productId);
+    const originalQty = originalItem ? originalItem.quantityOrdered : 0;
+    const availableStock = product.quantityInStock + originalQty;
+
+    if (quantityNum + alreadyInCart > availableStock) {
+      setEditFormErrors({
+        quantity: `สต็อกไม่พอ (เหลือ ${availableStock - alreadyInCart} ชิ้น)`,
+      });
+      return;
+    }
+
+    if (existingItem) {
+      setEditOrderItems(
+        editOrderItems.map((item) =>
+          item.productId === product.productId
+            ? {
+                ...item,
+                quantityOrdered: item.quantityOrdered + quantityNum,
+                priceEach: priceNum,
+                subtotal: (item.quantityOrdered + quantityNum) * priceNum,
+              }
+            : item
+        )
+      );
+    } else {
+      const item: OrderItem = {
+        productId: product.productId,
+        productName: product.productName,
+        quantityOrdered: quantityNum,
+        originalPrice: product.price,
+        priceEach: priceNum,
+        subtotal: quantityNum * priceNum,
+      };
+      setEditOrderItems([...editOrderItems, item]);
+    }
+
+    setEditSelectedProduct("");
+    setEditSelectedProductData(null);
+    setEditQuantity("");
+    setEditOriginalPrice("");
+    setEditSellingPrice("");
+  };
+
+  // Remove item from edit order
+  const removeEditItem = (index: number) => {
+    setEditOrderItems(editOrderItems.filter((_, i) => i !== index));
+  };
+
+  // Handle edit order
+  const handleEditOrder = async () => {
+    if (!editingOrder) return;
+
+    if (editOrderItems.length === 0) {
+      setEditFormErrors({ items: "กรุณาเพิ่มสินค้าอย่างน้อย 1 รายการ" });
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/orders/${editingOrder.orderId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          status: editPaymentStatus,
+          customerId: parseInt(editCustomerId),
+          items: editOrderItems.map((item) => ({
+            productId: item.productId,
+            quantityOrdered: item.quantityOrdered,
+            priceEach: item.priceEach,
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "เกิดข้อผิดพลาด");
+      }
+
+      toast.success("แก้ไขสำเร็จ", {
+        description: "แก้ไขออเดอร์เรียบร้อยแล้ว",
+      });
+
+      setIsEditDialogOpen(false);
+      setEditingOrder(null);
+      refetchOrders();
+    } catch (error) {
+      toast.error("เกิดข้อผิดพลาด", {
+        description: error instanceof Error ? error.message : "ไม่สามารถแก้ไขออเดอร์ได้",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // Open delete confirmation
   const openDeleteDialog = (order: Order, e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -419,7 +557,6 @@ export default function OrdersPage() {
       setIsDeleteDialogOpen(false);
       setDeletingOrder(null);
       refetchOrders();
-      refetchProducts();
     } catch (error) {
       toast.error("เกิดข้อผิดพลาด", {
         description: error instanceof Error ? error.message : "ไม่สามารถลบออเดอร์ได้",
@@ -447,11 +584,11 @@ export default function OrdersPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "completed":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+        return "bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg shadow-emerald-500/25";
       case "pending":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+        return "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25";
       case "cancelled":
-        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+        return "bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-lg shadow-red-500/25";
       default:
         return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
     }
@@ -475,38 +612,43 @@ export default function OrdersPage() {
   const estimatedProfit = totalAmount - totalCost;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-fade-in">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">จัดการออเดอร์</h1>
-        <p className="text-muted-foreground">สร้างและจัดการคำสั่งซื้อ</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
+            จัดการออเดอร์
+          </h1>
+          <p className="text-muted-foreground mt-1">สร้างและจัดการคำสั่งซื้อ</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 shadow-lg shadow-orange-500/25">
+            <ShoppingBag className="h-5 w-5 text-white" />
+          </div>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Form - Left Side */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>สร้างออเดอร์ใหม่</CardTitle>
+        <Card className="lg:col-span-1 border-0 shadow-xl shadow-gray-200/50 dark:shadow-none bg-white dark:bg-gray-900/50 rounded-2xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-orange-500/10 to-amber-500/10 border-b border-orange-100 dark:border-orange-900/30">
+            <CardTitle className="flex items-center gap-2">
+              <Receipt className="h-5 w-5 text-orange-600" />
+              สร้างออเดอร์ใหม่
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Customer Select */}
               <div className="space-y-2">
                 <Label>
                   ลูกค้า <span className="text-destructive">*</span>
                 </Label>
-                <Select value={customerId} onValueChange={setCustomerId}>
-                  <SelectTrigger className={formErrors.customer ? "border-destructive" : ""}>
-                    <SelectValue placeholder="เลือกลูกค้า" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customers.map((customer) => (
-                      <SelectItem key={customer.id} value={customer.id.toString()}>
-                        {customer.fname} {customer.lname}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <CustomerSelect
+                  value={customerId}
+                  onValueChange={setCustomerId}
+                  error={!!formErrors.customer}
+                />
                 {formErrors.customer && (
                   <p className="text-xs text-destructive">{formErrors.customer}</p>
                 )}
@@ -518,7 +660,7 @@ export default function OrdersPage() {
                   สถานะการจ่ายเงิน <span className="text-destructive">*</span>
                 </Label>
                 <Select value={paymentStatus} onValueChange={setPaymentStatus}>
-                  <SelectTrigger>
+                  <SelectTrigger className="rounded-xl border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500">
                     <SelectValue placeholder="เลือกสถานะ" />
                   </SelectTrigger>
                   <SelectContent>
@@ -530,39 +672,32 @@ export default function OrdersPage() {
 
               {/* Add Items */}
               <div className="border-t pt-4">
-                <h3 className="font-semibold mb-3">เพิ่มสินค้า</h3>
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <Package className="h-4 w-4 text-orange-600" />
+                  เพิ่มสินค้า
+                </h3>
                 <div className="space-y-3">
                   <div className="space-y-2">
                     <Label>สินค้า</Label>
-                    <Select
+                    <ProductSelect
                       value={selectedProduct}
-                      onValueChange={(value) => {
+                      onValueChange={(value, product) => {
                         setSelectedProduct(value);
-                        const product = products.find(
-                          (p) => p.productId.toString() === value
-                        );
+                        setSelectedProductData(product || null);
                         if (product) {
                           setOriginalPrice(product.price.toString());
                           setSellingPrice(product.price.toString());
                         }
                       }}
-                    >
-                      <SelectTrigger className={formErrors.product ? "border-destructive" : ""}>
-                        <SelectValue placeholder="เลือกสินค้า" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {products
-                          .filter((p) => p.quantityInStock > 0)
-                          .map((product) => (
-                            <SelectItem
-                              key={product.productId}
-                              value={product.productId.toString()}
-                            >
-                              {product.productName} (สต็อก: {product.quantityInStock})
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
+                      error={!!formErrors.product}
+                      stockAdjustments={
+                        // Calculate stock adjustments based on items already in cart
+                        orderItems.reduce((acc, item) => {
+                          acc[item.productId] = -(item.quantityOrdered);
+                          return acc;
+                        }, {} as Record<number, number>)
+                      }
+                    />
                     {formErrors.product && (
                       <p className="text-xs text-destructive">{formErrors.product}</p>
                     )}
@@ -576,7 +711,7 @@ export default function OrdersPage() {
                       step="0.01"
                       value={originalPrice}
                       disabled
-                      className="bg-muted"
+                      className="bg-muted rounded-xl"
                     />
                   </div>
 
@@ -588,7 +723,7 @@ export default function OrdersPage() {
                         min="1"
                         value={quantity}
                         onChange={(e) => setQuantity(e.target.value)}
-                        className={formErrors.quantity ? "border-destructive" : ""}
+                        className={`rounded-xl ${formErrors.quantity ? "border-destructive" : ""}`}
                       />
                       {formErrors.quantity && (
                         <p className="text-xs text-destructive">{formErrors.quantity}</p>
@@ -602,7 +737,7 @@ export default function OrdersPage() {
                         min="0"
                         value={sellingPrice}
                         onChange={(e) => setSellingPrice(e.target.value)}
-                        className={formErrors.price ? "border-destructive" : ""}
+                        className={`rounded-xl ${formErrors.price ? "border-destructive" : ""}`}
                       />
                       {formErrors.price && (
                         <p className="text-xs text-destructive">{formErrors.price}</p>
@@ -610,8 +745,13 @@ export default function OrdersPage() {
                     </div>
                   </div>
 
-                  <Button type="button" variant="outline" onClick={addItem} className="w-full">
-                    <Plus className="h-4 w-4 mr-2" />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={addItem} 
+                    className="w-full rounded-xl border-orange-200 dark:border-orange-800 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+                  >
+                    <Plus className="h-4 w-4 mr-2 text-orange-600" />
                     เพิ่มรายการ
                   </Button>
                 </div>
@@ -620,47 +760,50 @@ export default function OrdersPage() {
               {/* Order Items */}
               {orderItems.length > 0 && (
                 <div className="border-t pt-4">
-                  <h3 className="font-semibold mb-3">รายการสินค้า</h3>
+                  <h3 className="font-semibold mb-3 flex items-center gap-2">
+                    <ShoppingCart className="h-4 w-4 text-orange-600" />
+                    รายการสินค้า ({orderItems.length})
+                  </h3>
                   <div className="space-y-2 mb-3">
                     {orderItems.map((item, index) => (
                       <div
                         key={index}
-                        className="flex items-center justify-between text-sm p-2 bg-muted/50 rounded"
+                        className="flex items-center justify-between text-sm p-3 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-xl border border-orange-100 dark:border-orange-800/30"
                       >
                         <div className="flex-1">
                           <p className="font-medium">{item.productName}</p>
-                          <p className="text-muted-foreground">
-                            {item.quantityOrdered} × ฿{formatPrice(item.priceEach)}
-                            <span className="text-xs ml-1">(ทุน: ฿{formatPrice(item.originalPrice)})</span>
+                          <p className="text-muted-foreground text-xs">
+                            {item.quantityOrdered} x ฿{formatPrice(item.priceEach)}
+                            <span className="ml-1">(ทุน: ฿{formatPrice(item.originalPrice)})</span>
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold">฿{formatPrice(item.subtotal)}</span>
+                          <span className="font-semibold text-orange-600">฿{formatPrice(item.subtotal)}</span>
                           <Button
                             type="button"
                             size="icon"
                             variant="ghost"
-                            className="h-6 w-6"
+                            className="h-6 w-6 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30"
                             onClick={() => removeItem(index)}
                           >
-                            <X className="h-3 w-3" />
+                            <X className="h-3 w-3 text-destructive" />
                           </Button>
                         </div>
                       </div>
                     ))}
                   </div>
-                  <div className="border-t pt-2 space-y-1">
+                  <div className="border-t pt-3 space-y-2 bg-gray-50 dark:bg-gray-800/50 -mx-6 px-6 py-3 -mb-6 rounded-b-2xl">
                     <div className="flex justify-between text-sm">
-                      <span>ต้นทุน:</span>
+                      <span className="text-muted-foreground">ต้นทุน:</span>
                       <span>฿{formatPrice(totalCost)}</span>
                     </div>
                     <div className="flex justify-between font-bold text-lg">
                       <span>รวม:</span>
-                      <span className="text-primary">฿{formatPrice(totalAmount)}</span>
+                      <span className="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">฿{formatPrice(totalAmount)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span>กำไร:</span>
-                      <span className={estimatedProfit < 0 ? "text-destructive font-semibold" : "text-green-600 font-semibold"}>
+                      <span className="text-muted-foreground">กำไร:</span>
+                      <span className={`font-semibold ${estimatedProfit < 0 ? "text-destructive" : "text-emerald-600"}`}>
                         ฿{formatPrice(estimatedProfit)}
                       </span>
                     </div>
@@ -674,7 +817,7 @@ export default function OrdersPage() {
 
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 shadow-lg shadow-orange-500/25 hover:shadow-xl hover:shadow-orange-500/30 transition-all duration-300"
                 disabled={!customerId || orderItems.length === 0 || submitting}
               >
                 <ShoppingCart className="mr-2 h-4 w-4" />
@@ -685,54 +828,127 @@ export default function OrdersPage() {
         </Card>
 
         {/* Table - Right Side */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>รายการออเดอร์</CardTitle>
+        <Card className="lg:col-span-2 border-0 shadow-xl shadow-gray-200/50 dark:shadow-none bg-white dark:bg-gray-900/50 rounded-2xl overflow-hidden">
+          <CardHeader className="border-b border-gray-100 dark:border-gray-800">
+            <div className="flex flex-col gap-4">
+              <CardTitle>รายการออเดอร์</CardTitle>
+              {/* Filters */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">กรองโดย:</span>
+                </div>
+                <div className="w-[180px]">
+                  <CustomerSelect
+                    value={filterCustomerId}
+                    onValueChange={(value) => {
+                      setFilterCustomerId(value);
+                      setCurrentPage(1);
+                    }}
+                    placeholder="ลูกค้าทั้งหมด"
+                  />
+                </div>
+                <div className="w-[220px]">
+                  <ProductMultiSelect
+                    values={filterProductIds}
+                    onValuesChange={(values) => {
+                      setFilterProductIds(values);
+                      setCurrentPage(1);
+                    }}
+                    placeholder="สินค้าทั้งหมด"
+                  />
+                </div>
+                <Select 
+                  value={filterStatus} 
+                  onValueChange={(value) => {
+                    setFilterStatus(value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-[150px] rounded-xl">
+                    <SelectValue placeholder="สถานะทั้งหมด" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">สถานะทั้งหมด</SelectItem>
+                    <SelectItem value="pending">ยังไม่จ่าย</SelectItem>
+                    <SelectItem value="completed">จ่ายแล้ว</SelectItem>
+                    <SelectItem value="cancelled">ยกเลิก</SelectItem>
+                  </SelectContent>
+                </Select>
+                {(filterStatus || filterCustomerId || filterProductIds.length > 0) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-lg text-muted-foreground hover:text-foreground"
+                    onClick={() => {
+                      setFilterStatus("");
+                      setFilterCustomerId("");
+                      setFilterProductIds([]);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    ล้างตัวกรอง
+                  </Button>
+                )}
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             {loading ? (
-              <div className="text-center py-8 text-muted-foreground">
-                กำลังโหลด...
+              <div className="text-center py-12 text-muted-foreground">
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-orange-500 border-r-transparent"></div>
+                <p className="mt-4">กำลังโหลด...</p>
               </div>
             ) : orders.length === 0 ? (
-              <div className="text-center py-8">
-                <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <div className="text-center py-12">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500/20 to-amber-500/20 mx-auto mb-4">
+                  <ShoppingCart className="h-8 w-8 text-orange-500" />
+                </div>
                 <p className="text-muted-foreground">ไม่มีออเดอร์</p>
               </div>
             ) : (
               <>
-                <div className="rounded-md border">
+                <div className="overflow-hidden">
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead>เลขที่</TableHead>
-                        <TableHead>ลูกค้า</TableHead>
-                        <TableHead>วันที่</TableHead>
-                        <TableHead className="text-right">ยอดรวม</TableHead>
-                        <TableHead className="text-right">กำไร</TableHead>
-                        <TableHead>สถานะ</TableHead>
-                        <TableHead className="w-[100px]">จัดการ</TableHead>
+                      <TableRow className="bg-gray-50/50 dark:bg-gray-800/50 hover:bg-gray-50/50">
+                        <TableHead className="font-semibold">เลขที่</TableHead>
+                        <TableHead className="font-semibold">ลูกค้า</TableHead>
+                        <TableHead className="font-semibold">วันที่</TableHead>
+                        <TableHead className="text-right font-semibold">ต้นทุน</TableHead>
+                        <TableHead className="text-right font-semibold">ยอดรวม</TableHead>
+                        <TableHead className="text-right font-semibold">กำไร</TableHead>
+                        <TableHead className="font-semibold">สถานะ</TableHead>
+                        <TableHead className="w-[120px] font-semibold">จัดการ</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {orders.map((order) => (
                         <TableRow
                           key={order.orderId}
-                          className="cursor-pointer hover:bg-muted/50"
+                          className="cursor-pointer hover:bg-orange-50/50 dark:hover:bg-orange-900/10 transition-colors"
                           onClick={() => handleRowClick(order)}
                         >
-                          <TableCell className="font-medium">#{order.orderId}</TableCell>
-                          <TableCell>{order.customerName}</TableCell>
-                          <TableCell>{formatDate(order.orderDate)}</TableCell>
-                          <TableCell className="text-right">
-                            ฿{formatPrice(order.totalAmount)}
+                          <TableCell className="font-medium">
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm">
+                              #{order.orderId}
+                            </span>
                           </TableCell>
-                          <TableCell className={`text-right font-medium ${order.profit < 0 ? "text-destructive" : "text-green-600 dark:text-green-400"}`}>
+                          <TableCell>{order.customerName}</TableCell>
+                          <TableCell className="text-muted-foreground">{formatDate(order.orderDate)}</TableCell>
+                          <TableCell className="text-right">
+                            <span className="text-muted-foreground">฿{formatPrice(order.totalAmount - order.profit)}</span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <span className="font-semibold">฿{formatPrice(order.totalAmount)}</span>
+                          </TableCell>
+                          <TableCell className={`text-right font-semibold ${order.profit < 0 ? "text-destructive" : "text-emerald-600 dark:text-emerald-400"}`}>
                             ฿{formatPrice(order.profit)}
                           </TableCell>
                           <TableCell>
                             <button
-                              className={`text-xs px-2 py-1 rounded-full cursor-pointer hover:opacity-80 ${getStatusBadge(order.status)}`}
+                              className={`text-xs px-3 py-1.5 rounded-full cursor-pointer hover:opacity-90 transition-opacity font-medium ${getStatusBadge(order.status)}`}
                               onClick={(e) => openStatusDialog(order, e)}
                             >
                               {getStatusText(order.status)}
@@ -745,14 +961,27 @@ export default function OrdersPage() {
                                 variant="ghost"
                                 onClick={(e) => openDetailDialog(order, e)}
                                 title="ดูรายละเอียด"
+                                className="h-8 w-8 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30"
                               >
-                                <Eye className="h-4 w-4" />
+                                <Eye className="h-4 w-4 text-orange-600" />
                               </Button>
+                              {order.status === "pending" && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={(e) => openEditDialog(order, e)}
+                                  title="แก้ไข"
+                                  className="h-8 w-8 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                                >
+                                  <Pencil className="h-4 w-4 text-blue-600" />
+                                </Button>
+                              )}
                               <Button
                                 size="icon"
                                 variant="ghost"
                                 onClick={(e) => openDeleteDialog(order, e)}
                                 title="ลบ"
+                                className="h-8 w-8 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30"
                               >
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
@@ -765,7 +994,7 @@ export default function OrdersPage() {
                 </div>
 
                 {/* Pagination */}
-                <div className="flex items-center justify-between mt-4">
+                <div className="flex items-center justify-between p-4 border-t border-gray-100 dark:border-gray-800">
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">แสดง</span>
                     <Select
@@ -775,7 +1004,7 @@ export default function OrdersPage() {
                         setCurrentPage(1);
                       }}
                     >
-                      <SelectTrigger className="w-[70px] h-8">
+                      <SelectTrigger className="w-[70px] h-8 rounded-lg">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -794,19 +1023,19 @@ export default function OrdersPage() {
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-8 w-8"
+                      className="h-8 w-8 rounded-lg"
                       onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                       disabled={currentPage === 1}
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
-                    <span className="text-sm">
+                    <span className="text-sm px-2">
                       หน้า {currentPage} / {totalPages || 1}
                     </span>
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-8 w-8"
+                      className="h-8 w-8 rounded-lg"
                       onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                       disabled={currentPage === totalPages || totalPages === 0}
                     >
@@ -822,9 +1051,12 @@ export default function OrdersPage() {
 
       {/* Detail Dialog */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg rounded-2xl">
           <DialogHeader>
-            <DialogTitle>รายละเอียดออเดอร์ #{selectedOrder?.orderId}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Receipt className="h-5 w-5 text-orange-600" />
+              รายละเอียดออเดอร์ #{selectedOrder?.orderId}
+            </DialogTitle>
             <DialogDescription>
               {selectedOrder?.customerName} - {selectedOrder && formatDate(selectedOrder.orderDate)}
             </DialogDescription>
@@ -832,10 +1064,10 @@ export default function OrdersPage() {
 
           {selectedOrder && (
             <div className="space-y-4 py-4">
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50">
                 <span className="text-muted-foreground">สถานะการจ่ายเงิน</span>
                 <button
-                  className={`text-xs px-2 py-1 rounded-full cursor-pointer hover:opacity-80 ${getStatusBadge(selectedOrder.status)}`}
+                  className={`text-xs px-3 py-1.5 rounded-full cursor-pointer hover:opacity-90 transition-opacity font-medium ${getStatusBadge(selectedOrder.status)}`}
                   onClick={() => {
                     setIsDetailDialogOpen(false);
                     openStatusDialog(selectedOrder);
@@ -845,15 +1077,17 @@ export default function OrdersPage() {
                 </button>
               </div>
 
-              <div className="border rounded-lg divide-y">
+              <div className="border rounded-xl divide-y overflow-hidden">
                 {selectedOrder.items?.map((item, index) => (
-                  <div key={index} className="flex justify-between items-center p-3">
+                  <div key={index} className="flex justify-between items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-800/30">
                     <div className="flex items-center gap-3">
-                      <Package className="h-4 w-4 text-muted-foreground" />
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-500 text-white">
+                        <Package className="h-4 w-4" />
+                      </div>
                       <div>
                         <p className="font-medium">{item.productName}</p>
                         <p className="text-sm text-muted-foreground">
-                          {item.quantityOrdered} × ฿{formatPrice(item.priceEach)}
+                          {item.quantityOrdered} x ฿{formatPrice(item.priceEach)}
                         </p>
                       </div>
                     </div>
@@ -865,13 +1099,13 @@ export default function OrdersPage() {
               <div className="space-y-2 pt-4 border-t">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">ยอดรวม</span>
-                  <span className="font-bold text-lg">
+                  <span className="font-bold text-lg bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
                     ฿{formatPrice(selectedOrder.totalAmount)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">กำไร</span>
-                  <span className={`font-semibold ${selectedOrder.profit < 0 ? "text-destructive" : "text-green-600 dark:text-green-400"}`}>
+                  <span className={`font-semibold ${selectedOrder.profit < 0 ? "text-destructive" : "text-emerald-600 dark:text-emerald-400"}`}>
                     ฿{formatPrice(selectedOrder.profit)}
                   </span>
                 </div>
@@ -880,7 +1114,7 @@ export default function OrdersPage() {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)} className="rounded-xl">
               ปิด
             </Button>
           </DialogFooter>
@@ -889,7 +1123,7 @@ export default function OrdersPage() {
 
       {/* Status Edit Dialog */}
       <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl">
           <DialogHeader>
             <DialogTitle>แก้ไขสถานะการจ่ายเงิน</DialogTitle>
             <DialogDescription>
@@ -899,7 +1133,7 @@ export default function OrdersPage() {
           <div className="py-4">
             <Label>สถานะ</Label>
             <Select value={newStatus} onValueChange={setNewStatus}>
-              <SelectTrigger className="mt-2">
+              <SelectTrigger className="mt-2 rounded-xl">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -910,10 +1144,227 @@ export default function OrdersPage() {
             </Select>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsStatusDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsStatusDialogOpen(false)} className="rounded-xl">
               ยกเลิก
             </Button>
-            <Button onClick={handleUpdateStatus} disabled={submitting}>
+            <Button 
+              onClick={handleUpdateStatus} 
+              disabled={submitting}
+              className="rounded-xl bg-gradient-to-r from-orange-600 to-amber-600"
+            >
+              {submitting ? "กำลังบันทึก..." : "บันทึก"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Order Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="rounded-2xl max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-blue-600" />
+              แก้ไขออเดอร์ #{editingOrder?.orderId}
+            </DialogTitle>
+            <DialogDescription>
+              แก้ไขข้อมูลลูกค้า สถานะ และรายการสินค้า
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>ลูกค้า</Label>
+                <CustomerSelect
+                  value={editCustomerId}
+                  onValueChange={setEditCustomerId}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>สถานะการจ่ายเงิน</Label>
+                <Select value={editPaymentStatus} onValueChange={setEditPaymentStatus}>
+                  <SelectTrigger className="rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">ยังไม่จ่าย</SelectItem>
+                    <SelectItem value="completed">จ่ายแล้ว</SelectItem>
+                    <SelectItem value="cancelled">ยกเลิก</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Add Items Section */}
+            <div className="border-t pt-4">
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <Package className="h-4 w-4 text-blue-600" />
+                เพิ่มสินค้า
+              </h3>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label>สินค้า</Label>
+                  <ProductSelect
+                    value={editSelectedProduct}
+                    onValueChange={(value, product) => {
+                      setEditSelectedProduct(value);
+                      setEditSelectedProductData(product || null);
+                      if (product) {
+                        setEditOriginalPrice(product.price.toString());
+                        setEditSellingPrice(product.price.toString());
+                      }
+                    }}
+                    error={!!editFormErrors.product}
+                    stockAdjustments={
+                      // Calculate stock adjustments for edit mode
+                      // Add back original order quantities, subtract current edit cart quantities
+                      (() => {
+                        const adj: Record<number, number> = {};
+                        // Add back original quantities from the order being edited
+                        editingOrder?.items?.forEach((item: OrderItem) => {
+                          adj[item.productId] = (adj[item.productId] || 0) + item.quantityOrdered;
+                        });
+                        // Subtract current edit cart quantities
+                        editOrderItems.forEach((item) => {
+                          adj[item.productId] = (adj[item.productId] || 0) - item.quantityOrdered;
+                        });
+                        return adj;
+                      })()
+                    }
+                  />
+                  {editFormErrors.product && (
+                    <p className="text-xs text-destructive">{editFormErrors.product}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>ราคาสินค้า (฿)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={editOriginalPrice}
+                    disabled
+                    className="bg-muted rounded-xl"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-2">
+                    <Label>จำนวน</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={editQuantity}
+                      onChange={(e) => setEditQuantity(e.target.value)}
+                      className={`rounded-xl ${editFormErrors.quantity ? "border-destructive" : ""}`}
+                    />
+                    {editFormErrors.quantity && (
+                      <p className="text-xs text-destructive">{editFormErrors.quantity}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>ราคาขาย (฿)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={editSellingPrice}
+                      onChange={(e) => setEditSellingPrice(e.target.value)}
+                      className={`rounded-xl ${editFormErrors.price ? "border-destructive" : ""}`}
+                    />
+                    {editFormErrors.price && (
+                      <p className="text-xs text-destructive">{editFormErrors.price}</p>
+                    )}
+                  </div>
+                </div>
+
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={addEditItem} 
+                  className="w-full rounded-xl border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                >
+                  <Plus className="h-4 w-4 mr-2 text-blue-600" />
+                  เพิ่มรายการ
+                </Button>
+              </div>
+            </div>
+
+            {/* Order Items */}
+            {editOrderItems.length > 0 && (
+              <div className="border-t pt-4">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <ShoppingCart className="h-4 w-4 text-blue-600" />
+                  รายการสินค้า ({editOrderItems.length})
+                </h3>
+                <div className="space-y-2 mb-3 max-h-48 overflow-y-auto">
+                  {editOrderItems.map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between text-sm p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-100 dark:border-blue-800/30"
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium">{item.productName}</p>
+                        <p className="text-muted-foreground text-xs">
+                          {item.quantityOrdered} x ฿{formatPrice(item.priceEach)}
+                          <span className="ml-1">(ทุน: ฿{formatPrice(item.originalPrice)})</span>
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-blue-600">฿{formatPrice(item.subtotal)}</span>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30"
+                          onClick={() => removeEditItem(index)}
+                        >
+                          <X className="h-3 w-3 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="border-t pt-3 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">ต้นทุน:</span>
+                    <span>฿{formatPrice(editOrderItems.reduce((sum, item) => sum + (item.originalPrice * item.quantityOrdered), 0))}</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-lg">
+                    <span>รวม:</span>
+                    <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                      ฿{formatPrice(editOrderItems.reduce((sum, item) => sum + item.subtotal, 0))}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">กำไร:</span>
+                    <span className={`font-semibold ${
+                      editOrderItems.reduce((sum, item) => sum + item.subtotal, 0) - editOrderItems.reduce((sum, item) => sum + (item.originalPrice * item.quantityOrdered), 0) < 0 
+                        ? "text-destructive" 
+                        : "text-emerald-600"
+                    }`}>
+                      ฿{formatPrice(
+                        editOrderItems.reduce((sum, item) => sum + item.subtotal, 0) - 
+                        editOrderItems.reduce((sum, item) => sum + (item.originalPrice * item.quantityOrdered), 0)
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {editFormErrors.items && (
+              <p className="text-xs text-destructive">{editFormErrors.items}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} className="rounded-xl">
+              ยกเลิก
+            </Button>
+            <Button 
+              onClick={handleEditOrder} 
+              disabled={submitting || !editCustomerId || editOrderItems.length === 0}
+              className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600"
+            >
               {submitting ? "กำลังบันทึก..." : "บันทึก"}
             </Button>
           </DialogFooter>
@@ -922,19 +1373,19 @@ export default function OrdersPage() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl">
           <DialogHeader>
-            <DialogTitle>ยืนยันการลบ</DialogTitle>
+            <DialogTitle className="text-destructive">ยืนยันการลบ</DialogTitle>
             <DialogDescription>
               คุณต้องการลบออเดอร์ #{deletingOrder?.orderId} ใช่หรือไม่?
               สต็อกสินค้าจะถูกคืนกลับโดยอัตโนมัติ
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} className="rounded-xl">
               ยกเลิก
             </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={submitting}>
+            <Button variant="destructive" onClick={handleDelete} disabled={submitting} className="rounded-xl">
               {submitting ? "กำลังลบ..." : "ลบ"}
             </Button>
           </DialogFooter>

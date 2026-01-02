@@ -1,7 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, Pencil, Trash2, Package, AlertTriangle, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Search,
+  Pencil,
+  Trash2,
+  Package,
+  AlertTriangle,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  PackagePlus,
+  Boxes,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,7 +41,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/sonner";
-import { productSchema, type ProductFormData, validateForm } from "@/lib/validations";
+import {
+  productSchema,
+  type ProductFormData,
+  validateForm,
+} from "@/lib/validations";
 
 interface Product {
   productId: number;
@@ -64,7 +79,7 @@ export default function ProductsPage() {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
@@ -78,22 +93,29 @@ export default function ProductsPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [editFormData, setEditFormData] = useState<ProductFormDataRaw>(initialFormData);
-  const [editFormErrors, setEditFormErrors] = useState<Record<string, string>>({});
+  const [editFormData, setEditFormData] =
+    useState<ProductFormDataRaw>(initialFormData);
+  const [editFormErrors, setEditFormErrors] = useState<Record<string, string>>(
+    {}
+  );
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
 
   // Fetch products with pagination
-  const fetchProducts = async (search?: string, page = currentPage, limit = itemsPerPage) => {
+  const fetchProducts = async (
+    search?: string,
+    page = currentPage,
+    limit = itemsPerPage
+  ) => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      params.set('page', page.toString());
-      params.set('limit', limit.toString());
-      if (search) params.set('search', search);
+      params.set("page", page.toString());
+      params.set("limit", limit.toString());
+      if (search) params.set("search", search);
 
       const res = await fetch(`/api/products?${params.toString()}`);
       const result = await res.json();
-      
+
       if (result.data) {
         setProducts(result.data);
         setTotalItems(result.pagination.total);
@@ -162,7 +184,8 @@ export default function ProductsPage() {
       fetchProducts(searchQuery, currentPage, itemsPerPage);
     } catch (error) {
       toast.error("เกิดข้อผิดพลาด", {
-        description: error instanceof Error ? error.message : "ไม่สามารถบันทึกข้อมูลได้",
+        description:
+          error instanceof Error ? error.message : "ไม่สามารถบันทึกข้อมูลได้",
       });
     } finally {
       setSubmitting(false);
@@ -237,7 +260,8 @@ export default function ProductsPage() {
       fetchProducts(searchQuery, currentPage, itemsPerPage);
     } catch (error) {
       toast.error("เกิดข้อผิดพลาด", {
-        description: error instanceof Error ? error.message : "ไม่สามารถบันทึกข้อมูลได้",
+        description:
+          error instanceof Error ? error.message : "ไม่สามารถบันทึกข้อมูลได้",
       });
     } finally {
       setSubmitting(false);
@@ -275,7 +299,8 @@ export default function ProductsPage() {
       fetchProducts(searchQuery, currentPage, itemsPerPage);
     } catch (error) {
       toast.error("เกิดข้อผิดพลาด", {
-        description: error instanceof Error ? error.message : "ไม่สามารถลบข้อมูลได้",
+        description:
+          error instanceof Error ? error.message : "ไม่สามารถลบข้อมูลได้",
       });
     } finally {
       setSubmitting(false);
@@ -291,20 +316,34 @@ export default function ProductsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-fade-in">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">จัดการสินค้า</h1>
-        <p className="text-muted-foreground">เพิ่ม แก้ไข และจัดการสินค้าคงคลัง</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+            จัดการสินค้า
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            เพิ่ม แก้ไข และจัดการสินค้าคงคลัง
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/25">
+            <Boxes className="h-5 w-5 text-white" />
+          </div>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Form - Left Side (Add only) */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>เพิ่มสินค้าใหม่</CardTitle>
+        <Card className="lg:col-span-1 border-0 shadow-xl shadow-gray-200/50 dark:shadow-none bg-white dark:bg-gray-900/50 rounded-2xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-b border-emerald-100 dark:border-emerald-900/30">
+            <CardTitle className="flex items-center gap-2">
+              <PackagePlus className="h-5 w-5 text-emerald-600" />
+              เพิ่มสินค้าใหม่
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="productName">
@@ -316,10 +355,14 @@ export default function ProductsPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, productName: e.target.value })
                   }
-                  className={formErrors.productName ? "border-destructive" : ""}
+                  className={`rounded-xl border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all ${
+                    formErrors.productName ? "border-destructive" : ""
+                  }`}
                 />
                 {formErrors.productName && (
-                  <p className="text-xs text-destructive">{formErrors.productName}</p>
+                  <p className="text-xs text-destructive">
+                    {formErrors.productName}
+                  </p>
                 )}
               </div>
 
@@ -336,7 +379,9 @@ export default function ProductsPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, price: e.target.value })
                   }
-                  className={formErrors.price ? "border-destructive" : ""}
+                  className={`rounded-xl border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all ${
+                    formErrors.price ? "border-destructive" : ""
+                  }`}
                 />
                 {formErrors.price && (
                   <p className="text-xs text-destructive">{formErrors.price}</p>
@@ -353,12 +398,19 @@ export default function ProductsPage() {
                   min="0"
                   value={formData.quantityInStock}
                   onChange={(e) =>
-                    setFormData({ ...formData, quantityInStock: e.target.value })
+                    setFormData({
+                      ...formData,
+                      quantityInStock: e.target.value,
+                    })
                   }
-                  className={formErrors.quantityInStock ? "border-destructive" : ""}
+                  className={`rounded-xl border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all ${
+                    formErrors.quantityInStock ? "border-destructive" : ""
+                  }`}
                 />
                 {formErrors.quantityInStock && (
-                  <p className="text-xs text-destructive">{formErrors.quantityInStock}</p>
+                  <p className="text-xs text-destructive">
+                    {formErrors.quantityInStock}
+                  </p>
                 )}
               </div>
 
@@ -373,10 +425,14 @@ export default function ProductsPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, volume: e.target.value })
                   }
-                  className={formErrors.volume ? "border-destructive" : ""}
+                  className={`rounded-xl border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all ${
+                    formErrors.volume ? "border-destructive" : ""
+                  }`}
                 />
                 {formErrors.volume && (
-                  <p className="text-xs text-destructive">{formErrors.volume}</p>
+                  <p className="text-xs text-destructive">
+                    {formErrors.volume}
+                  </p>
                 )}
               </div>
 
@@ -388,10 +444,16 @@ export default function ProductsPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
+                  className="rounded-xl border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                 />
               </div>
 
-              <Button type="submit" className="w-full" disabled={submitting}>
+              <Button
+                type="submit"
+                className="w-full rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:shadow-emerald-500/30 transition-all duration-300"
+                disabled={submitting}
+              >
+                <PackagePlus className="h-4 w-4 mr-2" />
                 {submitting ? "กำลังบันทึก..." : "เพิ่มสินค้า"}
               </Button>
             </form>
@@ -399,8 +461,8 @@ export default function ProductsPage() {
         </Card>
 
         {/* Table - Right Side */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
+        <Card className="lg:col-span-2 border-0 shadow-xl shadow-gray-200/50 dark:shadow-none bg-white dark:bg-gray-900/50 rounded-2xl overflow-hidden">
+          <CardHeader className="border-b border-gray-100 dark:border-gray-800">
             <CardTitle>รายการสินค้า</CardTitle>
             <div className="flex gap-2 mt-4">
               <div className="relative flex-1">
@@ -410,59 +472,85 @@ export default function ProductsPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  className="pl-9"
+                  className="pl-9 rounded-xl border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
                 />
               </div>
-              <Button onClick={handleSearch} size="icon">
+              <Button
+                onClick={handleSearch}
+                size="icon"
+                className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 shadow-lg shadow-emerald-500/25"
+              >
                 <Search className="h-4 w-4" />
               </Button>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             {loading ? (
-              <div className="text-center py-8 text-muted-foreground">
-                กำลังโหลด...
+              <div className="text-center py-12 text-muted-foreground">
+                <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-emerald-500 border-r-transparent"></div>
+                <p className="mt-4">กำลังโหลด...</p>
               </div>
             ) : products.length === 0 ? (
-              <div className="text-center py-8">
-                <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <div className="text-center py-12">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 mx-auto mb-4">
+                  <Package className="h-8 w-8 text-emerald-500" />
+                </div>
                 <p className="text-muted-foreground">ไม่พบสินค้า</p>
               </div>
             ) : (
               <>
-                <div className="rounded-md border">
+                <div className="overflow-hidden">
                   <Table>
                     <TableHeader>
-                      <TableRow>
-                        <TableHead>ชื่อสินค้า</TableHead>
-                        <TableHead className="text-right">ราคา</TableHead>
-                        <TableHead>หน่วย</TableHead>
-                        <TableHead className="text-right">สต็อก</TableHead>
-                        <TableHead className="w-[120px]">จัดการ</TableHead>
+                      <TableRow className="bg-gray-50/50 dark:bg-gray-800/50 hover:bg-gray-50/50">
+                        <TableHead className="font-semibold">
+                          ชื่อสินค้า
+                        </TableHead>
+                        <TableHead className="text-right font-semibold">
+                          ราคา
+                        </TableHead>
+                        <TableHead className="font-semibold">หน่วย</TableHead>
+                        <TableHead className="text-right font-semibold">
+                          สต็อก
+                        </TableHead>
+                        <TableHead className="w-[120px] font-semibold">
+                          จัดการ
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {products.map((product) => (
                         <TableRow
                           key={product.productId}
-                          className="cursor-pointer hover:bg-muted/50"
+                          className="cursor-pointer hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 transition-colors"
                           onClick={() => handleRowClick(product)}
                         >
                           <TableCell className="font-medium">
-                            {product.productName}
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 text-white">
+                                <Package className="h-4 w-4" />
+                              </div>
+                              {product.productName}
+                            </div>
                           </TableCell>
                           <TableCell className="text-right">
-                            ฿{formatPrice(product.price)}
+                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                              ฿{formatPrice(product.price)}
+                            </span>
                           </TableCell>
-                          <TableCell>{product.volume || "-"}</TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {product.volume || "-"}
+                          </TableCell>
                           <TableCell className="text-right">
                             {product.quantityInStock < 10 ? (
-                              <span className="inline-flex items-center gap-1 text-destructive font-medium">
-                                <AlertTriangle className="h-3 w-3" />
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-sm font-medium">
+                                <AlertTriangle className="h-3.5 w-3.5" />
                                 {product.quantityInStock}
                               </span>
                             ) : (
-                              product.quantityInStock
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-sm font-medium">
+                                {product.quantityInStock}
+                              </span>
                             )}
                           </TableCell>
                           <TableCell>
@@ -472,22 +560,25 @@ export default function ProductsPage() {
                                 variant="ghost"
                                 onClick={(e) => openDetailDialog(product, e)}
                                 title="ดูรายละเอียด"
+                                className="h-8 w-8 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/30"
                               >
-                                <Eye className="h-4 w-4" />
+                                <Eye className="h-4 w-4 text-emerald-600" />
                               </Button>
                               <Button
                                 size="icon"
                                 variant="ghost"
                                 onClick={(e) => openEditDialog(product, e)}
                                 title="แก้ไข"
+                                className="h-8 w-8 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30"
                               >
-                                <Pencil className="h-4 w-4" />
+                                <Pencil className="h-4 w-4 text-blue-600" />
                               </Button>
                               <Button
                                 size="icon"
                                 variant="ghost"
                                 onClick={(e) => openDeleteDialog(product, e)}
                                 title="ลบ"
+                                className="h-8 w-8 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30"
                               >
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
@@ -500,7 +591,7 @@ export default function ProductsPage() {
                 </div>
 
                 {/* Pagination */}
-                <div className="flex items-center justify-between mt-4">
+                <div className="flex items-center justify-between p-4 border-t border-gray-100 dark:border-gray-800">
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">แสดง</span>
                     <Select
@@ -510,7 +601,7 @@ export default function ProductsPage() {
                         setCurrentPage(1);
                       }}
                     >
-                      <SelectTrigger className="w-[70px] h-8">
+                      <SelectTrigger className="w-[70px] h-8 rounded-lg">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -529,20 +620,22 @@ export default function ProductsPage() {
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-8 w-8"
+                      className="h-8 w-8 rounded-lg"
                       onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                       disabled={currentPage === 1}
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
-                    <span className="text-sm">
+                    <span className="text-sm px-2">
                       หน้า {currentPage} / {totalPages || 1}
                     </span>
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-8 w-8"
-                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      className="h-8 w-8 rounded-lg"
+                      onClick={() =>
+                        setCurrentPage((p) => Math.min(totalPages, p + 1))
+                      }
                       disabled={currentPage === totalPages || totalPages === 0}
                     >
                       <ChevronRight className="h-4 w-4" />
@@ -557,59 +650,80 @@ export default function ProductsPage() {
 
       {/* Detail Dialog */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl">
           <DialogHeader>
             <DialogTitle>รายละเอียดสินค้า</DialogTitle>
           </DialogHeader>
           {selectedProduct && (
             <div className="space-y-4 py-4">
               <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                  <Package className="h-8 w-8 text-primary" />
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/25">
+                  <Package className="h-8 w-8 text-white" />
                 </div>
                 <div>
                   <h3 className="text-xl font-semibold">
                     {selectedProduct.productName}
                   </h3>
-                  <p className="text-2xl font-bold text-primary">
+                  <p className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
                     ฿{formatPrice(selectedProduct.price)}
                   </p>
                 </div>
               </div>
 
               <div className="grid gap-3 pt-4 border-t">
-                <div className="flex justify-between">
+                <div className="flex justify-between py-2 px-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
                   <span className="text-muted-foreground">รหัสสินค้า</span>
-                  <span>{selectedProduct.productId}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">หน่วย/ปริมาตร</span>
-                  <span>{selectedProduct.volume || "-"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">จำนวนในสต็อก</span>
-                  <span className={selectedProduct.quantityInStock < 10 ? "text-destructive font-medium" : ""}>
-                    {selectedProduct.quantityInStock}
-                    {selectedProduct.quantityInStock < 10 && " (สต็อกต่ำ)"}
+                  <span className="font-medium">
+                    {selectedProduct.productId}
                   </span>
+                </div>
+                <div className="flex justify-between py-2 px-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                  <span className="text-muted-foreground">หน่วย/ปริมาตร</span>
+                  <span className="font-medium">
+                    {selectedProduct.volume || "-"}
+                  </span>
+                </div>
+                <div className="flex justify-between py-2 px-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                  <span className="text-muted-foreground">จำนวนในสต็อก</span>
+                  {selectedProduct.quantityInStock < 10 ? (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-sm font-medium">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      {selectedProduct.quantityInStock} (สต็อกต่ำ)
+                    </span>
+                  ) : (
+                    <span className="font-medium">
+                      {selectedProduct.quantityInStock}
+                    </span>
+                  )}
                 </div>
                 {selectedProduct.description && (
                   <div className="pt-3 border-t">
-                    <span className="text-muted-foreground">รายละเอียด</span>
-                    <p className="mt-1">{selectedProduct.description}</p>
+                    <span className="text-muted-foreground text-sm">
+                      รายละเอียด
+                    </span>
+                    <p className="mt-1 font-medium">
+                      {selectedProduct.description}
+                    </p>
                   </div>
                 )}
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsDetailDialogOpen(false)}
+              className="rounded-xl"
+            >
               ปิด
             </Button>
-            <Button onClick={() => {
-              setIsDetailDialogOpen(false);
-              if (selectedProduct) openEditDialog(selectedProduct);
-            }}>
+            <Button
+              onClick={() => {
+                setIsDetailDialogOpen(false);
+                if (selectedProduct) openEditDialog(selectedProduct);
+              }}
+              className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600"
+            >
               <Pencil className="h-4 w-4 mr-2" />
               แก้ไข
             </Button>
@@ -619,7 +733,7 @@ export default function ProductsPage() {
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl">
           <DialogHeader>
             <DialogTitle>แก้ไขสินค้า</DialogTitle>
             <DialogDescription>
@@ -635,12 +749,19 @@ export default function ProductsPage() {
                 id="edit-productName"
                 value={editFormData.productName}
                 onChange={(e) =>
-                  setEditFormData({ ...editFormData, productName: e.target.value })
+                  setEditFormData({
+                    ...editFormData,
+                    productName: e.target.value,
+                  })
                 }
-                className={editFormErrors.productName ? "border-destructive" : ""}
+                className={`rounded-xl ${
+                  editFormErrors.productName ? "border-destructive" : ""
+                }`}
               />
               {editFormErrors.productName && (
-                <p className="text-xs text-destructive">{editFormErrors.productName}</p>
+                <p className="text-xs text-destructive">
+                  {editFormErrors.productName}
+                </p>
               )}
             </div>
 
@@ -658,10 +779,14 @@ export default function ProductsPage() {
                   onChange={(e) =>
                     setEditFormData({ ...editFormData, price: e.target.value })
                   }
-                  className={editFormErrors.price ? "border-destructive" : ""}
+                  className={`rounded-xl ${
+                    editFormErrors.price ? "border-destructive" : ""
+                  }`}
                 />
                 {editFormErrors.price && (
-                  <p className="text-xs text-destructive">{editFormErrors.price}</p>
+                  <p className="text-xs text-destructive">
+                    {editFormErrors.price}
+                  </p>
                 )}
               </div>
               <div className="space-y-2">
@@ -674,12 +799,19 @@ export default function ProductsPage() {
                   min="0"
                   value={editFormData.quantityInStock}
                   onChange={(e) =>
-                    setEditFormData({ ...editFormData, quantityInStock: e.target.value })
+                    setEditFormData({
+                      ...editFormData,
+                      quantityInStock: e.target.value,
+                    })
                   }
-                  className={editFormErrors.quantityInStock ? "border-destructive" : ""}
+                  className={`rounded-xl ${
+                    editFormErrors.quantityInStock ? "border-destructive" : ""
+                  }`}
                 />
                 {editFormErrors.quantityInStock && (
-                  <p className="text-xs text-destructive">{editFormErrors.quantityInStock}</p>
+                  <p className="text-xs text-destructive">
+                    {editFormErrors.quantityInStock}
+                  </p>
                 )}
               </div>
             </div>
@@ -695,10 +827,14 @@ export default function ProductsPage() {
                 onChange={(e) =>
                   setEditFormData({ ...editFormData, volume: e.target.value })
                 }
-                className={editFormErrors.volume ? "border-destructive" : ""}
+                className={`rounded-xl ${
+                  editFormErrors.volume ? "border-destructive" : ""
+                }`}
               />
               {editFormErrors.volume && (
-                <p className="text-xs text-destructive">{editFormErrors.volume}</p>
+                <p className="text-xs text-destructive">
+                  {editFormErrors.volume}
+                </p>
               )}
             </div>
 
@@ -708,16 +844,28 @@ export default function ProductsPage() {
                 id="edit-description"
                 value={editFormData.description}
                 onChange={(e) =>
-                  setEditFormData({ ...editFormData, description: e.target.value })
+                  setEditFormData({
+                    ...editFormData,
+                    description: e.target.value,
+                  })
                 }
+                className="rounded-xl"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditDialogOpen(false)}
+              className="rounded-xl"
+            >
               ยกเลิก
             </Button>
-            <Button onClick={handleEditSubmit} disabled={submitting}>
+            <Button
+              onClick={handleEditSubmit}
+              disabled={submitting}
+              className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600"
+            >
               {submitting ? "กำลังบันทึก..." : "บันทึก"}
             </Button>
           </DialogFooter>
@@ -726,18 +874,19 @@ export default function ProductsPage() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl">
           <DialogHeader>
-            <DialogTitle>ยืนยันการลบ</DialogTitle>
+            <DialogTitle className="text-destructive">ยืนยันการลบ</DialogTitle>
             <DialogDescription>
-              คุณต้องการลบสินค้า &quot;{deletingProduct?.productName}&quot; ใช่หรือไม่?
-              การดำเนินการนี้ไม่สามารถย้อนกลับได้
+              คุณต้องการลบสินค้า &quot;{deletingProduct?.productName}&quot;
+              ใช่หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setIsDeleteDialogOpen(false)}
+              className="rounded-xl"
             >
               ยกเลิก
             </Button>
@@ -745,6 +894,7 @@ export default function ProductsPage() {
               variant="destructive"
               onClick={handleDelete}
               disabled={submitting}
+              className="rounded-xl"
             >
               {submitting ? "กำลังลบ..." : "ลบ"}
             </Button>
