@@ -15,8 +15,9 @@ COPY . .
 # Generate Prisma client
 RUN bunx prisma generate
 
-# Set dummy DATABASE_URL for build (Prisma needs it at build time)
-ENV DATABASE_URL="mysql://dummy:dummy@localhost:3306/dummy"
+# Set DATABASE_URL for build (needed by Next.js at build time)
+ARG DATABASE_URL
+ENV DATABASE_URL=${DATABASE_URL}
 
 # Build the application
 RUN bun run build
