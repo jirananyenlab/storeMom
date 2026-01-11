@@ -30,6 +30,7 @@ model Product {
   productName     String   @db.VarChar(100)
   quantityInStock Int      @default(0)
   price           Decimal  @db.Decimal(10, 2)
+  sellPrice       Decimal? @db.Decimal(10, 2)
   volume          String?  @db.VarChar(45)
   description     String?  @db.Text
   createdAt       DateTime @default(now()) @map("created_at")

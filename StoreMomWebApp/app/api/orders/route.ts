@@ -143,7 +143,7 @@ export async function POST(request: Request) {
         }
       });
 
-      // Create order details and update stock
+      // Create order details, update stock, and update sellPrice
       for (const item of items) {
         await tx.orderDetail.create({
           data: {
@@ -159,7 +159,8 @@ export async function POST(request: Request) {
           data: {
             quantityInStock: {
               decrement: item.quantityOrdered
-            }
+            },
+            sellPrice: item.priceEach
           }
         });
       }

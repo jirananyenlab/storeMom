@@ -16,6 +16,7 @@ interface Product {
   productName: string;
   quantityInStock: number;
   price: number;
+  sellPrice: number;
   volume?: string;
 }
 
@@ -129,27 +130,15 @@ export function ProductSelect({
     }
   }, [loading, hasMore, page, searchQuery, fetchProducts]);
 
-  // Reset when popover opens
+  // Reset and refresh when popover opens
   useEffect(() => {
     if (open) {
-      // If we have a selected value but it's not in the current list, we need to fetch it
-      if (value && !products.find((p) => p.productId.toString() === value)) {
-        // Fetch the selected product to show its name
-        fetch(`/api/products/${value}`)
-          .then((res) => res.json())
-          .then((product) => {
-            if (product && product.productId) {
-              setProducts((prev) => {
-                // Avoid duplicates
-                if (prev.find((p) => p.productId === product.productId)) return prev;
-                return [product, ...prev];
-              });
-            }
-          })
-          .catch(() => {});
-      }
+      // Fetch fresh products every time popover opens
+      setPage(1);
+      setSearchQuery("");
+      fetchProducts(1, "");
     }
-  }, [open, value, products]);
+  }, [open, fetchProducts]);
 
   // Filter products based on stock
   const filteredProducts = excludeOutOfStock 
@@ -239,7 +228,7 @@ export function ProductSelect({
                           สต็อก: {availableStock}
                         </span>
                         <span>|</span>
-                        <span>฿{product.price.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</span>
+                        <span>฿{product.sellPrice.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</span>
                       </div>
                     </div>
                     {value === product.productId.toString() && (

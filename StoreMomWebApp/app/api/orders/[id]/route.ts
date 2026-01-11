@@ -213,7 +213,7 @@ export async function PUT(
           totalProfit += itemProfit;
         }
 
-        // Create new order details and update stock
+        // Create new order details, update stock, and update sellPrice
         for (const item of items) {
           await tx.orderDetail.create({
             data: {
@@ -229,7 +229,8 @@ export async function PUT(
             data: {
               quantityInStock: {
                 decrement: item.quantityOrdered
-              }
+              },
+              sellPrice: item.priceEach
             }
           });
         }

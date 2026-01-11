@@ -39,6 +39,7 @@ interface Product {
   productName: string;
   quantityInStock: number;
   price: number;
+  sellPrice: number;
   volume?: string;
 }
 
@@ -704,7 +705,7 @@ export default function OrdersPage() {
                         setSelectedProductData(product || null);
                         if (product) {
                           setOriginalPrice(product.price.toString());
-                          setSellingPrice(product.price.toString());
+                          setSellingPrice(product.sellPrice.toString());
                         }
                       }}
                       error={!!formErrors.product}
@@ -723,7 +724,7 @@ export default function OrdersPage() {
 
                   {/* Original Price - Read Only */}
                   <div className="space-y-2">
-                    <Label>ราคาสินค้า (฿)</Label>
+                    <Label>ราคาต้นทุนสินค้า (฿)</Label>
                     <Input
                       type="number"
                       step="0.01"
@@ -1245,7 +1246,7 @@ export default function OrdersPage() {
                       setEditSelectedProductData(product || null);
                       if (product) {
                         setEditOriginalPrice(product.price.toString());
-                        setEditSellingPrice(product.price.toString());
+                        setEditSellingPrice(product.sellPrice.toString());
                       }
                     }}
                     error={!!editFormErrors.product}
@@ -1272,7 +1273,7 @@ export default function OrdersPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>ราคาสินค้า (฿)</Label>
+                  <Label>ราคาต้นทุนสินค้า (฿)</Label>
                   <Input
                     type="number"
                     step="0.01"

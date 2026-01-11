@@ -3,11 +3,20 @@ import prisma from '@/lib/prisma';
 
 // Helper to convert Decimal to number
 function formatProduct(product: any) {
+  const price = typeof product.price === 'object' && product.price !== null 
+    ? Number(product.price.toString()) 
+    : Number(product.price);
+  
+  const sellPrice = product.sellPrice != null
+    ? (typeof product.sellPrice === 'object' 
+        ? Number(product.sellPrice.toString()) 
+        : Number(product.sellPrice))
+    : price; // Default to price if sellPrice is null
+
   return {
     ...product,
-    price: typeof product.price === 'object' && product.price !== null 
-      ? Number(product.price.toString()) 
-      : Number(product.price)
+    price,
+    sellPrice
   };
 }
 

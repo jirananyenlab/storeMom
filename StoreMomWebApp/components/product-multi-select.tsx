@@ -16,6 +16,7 @@ interface Product {
   productName: string;
   quantityInStock: number;
   price: number;
+  sellPrice: number;
   volume?: string;
 }
 

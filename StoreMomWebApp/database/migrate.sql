@@ -190,6 +190,10 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
+-- Optional: Update existing products to set sellPrice = price
+UPDATE product SET sellPrice = price WHERE sellPrice IS NULL;
+
+
 -- Set default value for orderDate if NULL
 UPDATE orders SET orderDate = NOW() WHERE orderDate IS NULL;
 
