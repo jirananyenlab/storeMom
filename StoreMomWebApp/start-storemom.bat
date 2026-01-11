@@ -8,7 +8,7 @@ if not exist "node_modules" (
 )
 
 :: Check if port 3000 is already in use
-netstat -ano | findstr :3000 | findstr LISTENING >nul
+netstat -ano | findstr :3000 | findstr LISTENING >NUL
 if %errorlevel%==0 (
     echo Server is already running. Opening browser...
     start "" "http://localhost:3000"
@@ -28,11 +28,11 @@ start /b bun run start
 :: Wait for server to be ready (check every 1 second, max 30 seconds)
 set /a count=0
 :waitloop
-timeout /t 1 /nobreak >nul
+timeout /t 1 /nobreak >NUL
 set /a count+=1
 
 :: Check if server is responding
-curl -s -o nul -w "" http://localhost:3000 >nul 2>&1
+curl -s -o NUL -w "" http://localhost:3000 >NUL 2>&1
 if %errorlevel%==0 (
     echo Server is ready!
     start "" "http://localhost:3000"
