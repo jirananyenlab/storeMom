@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { THAI_MONTHS, toBuddhistYear } from '@/constants';
 
-// GET monthly sales summary with top selling products
+// GET monthly stock summary
 // Query params: month (1-12), year (e.g., 2024)
 export async function GET(request: NextRequest) {
   try {
@@ -20,32 +20,29 @@ export async function GET(request: NextRequest) {
     const startOfMonth = new Date(year, validMonth - 1, 1);
     const endOfMonth = new Date(year, validMonth, 0, 23, 59, 59, 999);
 
-    // Get monthly orders summary
-    const monthlyOrders = await prisma.order.findMany({
+    // Get newly added products this month (products created in this month)
+    const newProducts = await prisma.product.findMany({
       where: {
-        orderDate: {
+        createdAt: {
           gte: startOfMonth,
           lte: endOfMonth,
         },
       },
       select: {
-        totalAmount: true,
-        profit: true,
+        productId: true,
+        productName: true,
+        volume: true,
+        quantityInStock: true,
+        price: true,
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
       },
     });
 
-    const totalSales = monthlyOrders.reduce(
-      (sum, order) => sum + Number(order.totalAmount),
-      0
-    );
-    const totalProfit = monthlyOrders.reduce(
-      (sum, order) => sum + Number(order.profit),
-      0
-    );
-    const orderCount = monthlyOrders.length;
-
-    // Get top selling products this month
-    const topProducts = await prisma.orderDetail.groupBy({
+    // Get items sold this month (from order details)
+    const soldItems = await prisma.orderDetail.groupBy({
       by: ['productId'],
       where: {
         order: {
@@ -63,36 +60,38 @@ export async function GET(request: NextRequest) {
           quantityOrdered: 'desc',
         },
       },
-      take: 5,
     });
 
-    // Get product details for top products
-    const productIds = topProducts.map((p) => p.productId);
-    const products = await prisma.product.findMany({
-      where: {
-        productId: {
-          in: productIds,
-        },
-      },
+    // Calculate totals
+    const totalNewProducts = newProducts.length;
+    const totalItemsSold = soldItems.reduce(
+      (sum, item) => sum + (item._sum.quantityOrdered || 0),
+      0
+    );
+
+    // Get all products for remaining stock summary
+    const allProducts = await prisma.product.findMany({
       select: {
         productId: true,
         productName: true,
-        price: true,
         volume: true,
+        quantityInStock: true,
+        price: true,
+      },
+      orderBy: {
+        quantityInStock: 'asc',
       },
     });
 
-    // Combine top products with their details
-    const topSellingProducts = topProducts.map((tp) => {
-      const product = products.find((p) => p.productId === tp.productId);
-      return {
-        productId: tp.productId,
-        productName: product?.productName || 'Unknown',
-        volume: product?.volume || null,
-        price: Number(product?.price || 0),
-        quantitySold: tp._sum.quantityOrdered || 0,
-      };
-    });
+    const totalRemainingStock = allProducts.reduce(
+      (sum, product) => sum + product.quantityInStock,
+      0
+    );
+
+    // Low stock products (less than 10 items)
+    const lowStockProducts = allProducts.filter(
+      (product) => product.quantityInStock < 10
+    );
 
     const monthName = THAI_MONTHS[validMonth - 1];
     const yearBE = toBuddhistYear(year);
@@ -102,18 +101,18 @@ export async function GET(request: NextRequest) {
       year,
       yearBE,
       monthName,
-      label: `สรุปยอดขาย ${monthName} ${yearBE}`,
+      label: `สรุปสต็อก ${monthName} ${yearBE}`,
       summary: {
-        totalSales,
-        totalProfit,
-        orderCount,
+        totalNewProducts,
+        totalItemsSold,
+        totalRemainingStock,
+        lowStockCount: lowStockProducts.length,
       },
-      topSellingProducts,
     });
   } catch (error) {
     console.error('Database error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch monthly sales' },
+      { error: 'Failed to fetch monthly stock data' },
       { status: 500 }
     );
   }

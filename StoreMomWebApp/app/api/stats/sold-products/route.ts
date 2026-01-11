@@ -2,16 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { THAI_MONTHS, toBuddhistYear } from '@/constants';
 
-// GET monthly sales summary with top selling products
-// Query params: month (1-12), year (e.g., 2024)
+// GET sold products with pagination
+// Query params: month (1-12), year (e.g., 2024), page (1-based), limit (default 5)
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     
     // Get month and year from query params, default to current
     const now = new Date();
-    const month = parseInt(searchParams.get('month') || '') || (now.getMonth() + 1); // 1-12
+    const month = parseInt(searchParams.get('month') || '') || (now.getMonth() + 1);
     const year = parseInt(searchParams.get('year') || '') || now.getFullYear();
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const limit = Math.max(1, Math.min(50, parseInt(searchParams.get('limit') || '5')));
     
     // Validate month
     const validMonth = Math.max(1, Math.min(12, month));
@@ -20,32 +22,8 @@ export async function GET(request: NextRequest) {
     const startOfMonth = new Date(year, validMonth - 1, 1);
     const endOfMonth = new Date(year, validMonth, 0, 23, 59, 59, 999);
 
-    // Get monthly orders summary
-    const monthlyOrders = await prisma.order.findMany({
-      where: {
-        orderDate: {
-          gte: startOfMonth,
-          lte: endOfMonth,
-        },
-      },
-      select: {
-        totalAmount: true,
-        profit: true,
-      },
-    });
-
-    const totalSales = monthlyOrders.reduce(
-      (sum, order) => sum + Number(order.totalAmount),
-      0
-    );
-    const totalProfit = monthlyOrders.reduce(
-      (sum, order) => sum + Number(order.profit),
-      0
-    );
-    const orderCount = monthlyOrders.length;
-
-    // Get top selling products this month
-    const topProducts = await prisma.orderDetail.groupBy({
+    // Get all sold items grouped by productId for this month (to get total count)
+    const allSoldItems = await prisma.orderDetail.groupBy({
       by: ['productId'],
       where: {
         order: {
@@ -63,34 +41,42 @@ export async function GET(request: NextRequest) {
           quantityOrdered: 'desc',
         },
       },
-      take: 5,
     });
 
-    // Get product details for top products
-    const productIds = topProducts.map((p) => p.productId);
-    const products = await prisma.product.findMany({
+    const totalCount = allSoldItems.length;
+    const totalPages = Math.ceil(totalCount / limit);
+    const skip = (page - 1) * limit;
+
+    // Get paginated sold items
+    const paginatedSoldItems = allSoldItems.slice(skip, skip + limit);
+
+    // Get product details for paginated sold items
+    const soldProductIds = paginatedSoldItems.map((p) => p.productId);
+    const soldProducts = await prisma.product.findMany({
       where: {
         productId: {
-          in: productIds,
+          in: soldProductIds,
         },
       },
       select: {
         productId: true,
         productName: true,
-        price: true,
         volume: true,
+        quantityInStock: true,
+        price: true,
       },
     });
 
-    // Combine top products with their details
-    const topSellingProducts = topProducts.map((tp) => {
-      const product = products.find((p) => p.productId === tp.productId);
+    // Combine sold items with their product details
+    const soldItemsWithDetails = paginatedSoldItems.map((item) => {
+      const product = soldProducts.find((p) => p.productId === item.productId);
       return {
-        productId: tp.productId,
+        productId: item.productId,
         productName: product?.productName || 'Unknown',
         volume: product?.volume || null,
+        quantitySold: item._sum.quantityOrdered || 0,
+        remainingStock: product?.quantityInStock || 0,
         price: Number(product?.price || 0),
-        quantitySold: tp._sum.quantityOrdered || 0,
       };
     });
 
@@ -102,18 +88,20 @@ export async function GET(request: NextRequest) {
       year,
       yearBE,
       monthName,
-      label: `สรุปยอดขาย ${monthName} ${yearBE}`,
-      summary: {
-        totalSales,
-        totalProfit,
-        orderCount,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
       },
-      topSellingProducts,
+      products: soldItemsWithDetails,
     });
   } catch (error) {
     console.error('Database error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch monthly sales' },
+      { error: 'Failed to fetch sold products data' },
       { status: 500 }
     );
   }

@@ -1,12 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-
-// Thai month names
-const thaiMonths = [
-  'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน',
-  'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม',
-  'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
-];
+import { THAI_MONTHS, toBuddhistYear } from '@/constants';
 
 // GET available months/years that have order data
 export async function GET() {
@@ -30,12 +24,12 @@ export async function GET() {
       const year = date.getFullYear();
       const key = `${year}-${month}`;
       
-      if (!periodsMap.has(key)) {
+if (!periodsMap.has(key)) {
         periodsMap.set(key, {
           month: month + 1, // 1-12 for API
           year,
-          yearBE: year + 543,
-          monthName: thaiMonths[month] as string,
+          yearBE: toBuddhistYear(year),
+          monthName: THAI_MONTHS[month] as string,
         });
       }
     });
@@ -52,8 +46,8 @@ export async function GET() {
       periods.push({
         month: now.getMonth() + 1,
         year: now.getFullYear(),
-        yearBE: now.getFullYear() + 543,
-        monthName: thaiMonths[now.getMonth()] as string,
+        yearBE: toBuddhistYear(now.getFullYear()),
+        monthName: THAI_MONTHS[now.getMonth()] as string,
       });
     }
 

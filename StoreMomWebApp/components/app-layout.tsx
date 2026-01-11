@@ -170,8 +170,8 @@ export function AppLayout({ children }: AppLayoutProps) {
 
         {/* Main Content */}
         <div className="flex-1 lg:pl-72">
-          {/* Header */}
-          <header className="sticky top-0 z-40 flex h-14 items-center gap-4 px-4 lg:px-8">
+{/* Header */}
+          <header className="sticky top-0 z-40 flex h-14 items-center gap-4 px-4 lg:px-8 bg-white dark:bg-gray-900 border-b border-gray-200/50 dark:border-gray-800/50 shadow-sm">
             {/* Mobile Menu Button */}
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
               <SheetTrigger asChild>
@@ -206,8 +206,8 @@ export function AppLayout({ children }: AppLayoutProps) {
             {/* Page Title (Mobile) */}
             <h1 className="text-lg font-semibold md:hidden">{currentPageTitle}</h1>
 
-            {/* Right Side */}
-            <div className="ml-auto flex items-center gap-3">
+{/* Right Side */}
+<div className="ml-auto flex items-center gap-3">
               <div className="hidden lg:block">
                 <ThemeToggle />
               </div>
