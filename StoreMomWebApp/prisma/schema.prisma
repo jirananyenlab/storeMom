@@ -48,6 +48,7 @@ model Order {
   profit      Decimal  @default(0) @db.Decimal(10, 2)
   orderDate   DateTime @default(now())
   status      String   @default("pending") @db.VarChar(20)
+  note        String?  @db.Text
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
   
