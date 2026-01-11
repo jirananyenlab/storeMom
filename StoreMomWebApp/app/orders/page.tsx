@@ -59,6 +59,7 @@ interface Order {
   profit: number;
   orderDate: string;
   status: string;
+  note?: string;
   items?: OrderItem[];
 }
 
@@ -79,6 +80,7 @@ export default function OrdersPage() {
 
   // Form states
   const [customerId, setCustomerId] = useState("");
+  const [note, setNote] = useState("");
   const [selectedProduct, setSelectedProduct] = useState("");
   const [selectedProductData, setSelectedProductData] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState("");
@@ -101,6 +103,7 @@ export default function OrdersPage() {
   const [newStatus, setNewStatus] = useState("");
   const [editCustomerId, setEditCustomerId] = useState("");
   const [editPaymentStatus, setEditPaymentStatus] = useState("");
+  const [editNote, setEditNote] = useState("");
 
   // Edit order items states
   const [editOrderItems, setEditOrderItems] = useState<OrderItem[]>([]);
@@ -270,6 +273,7 @@ export default function OrdersPage() {
           customer_id: parseInt(customerId),
           orderDate: new Date().toISOString(),
           status: paymentStatus,
+          note: note,
           items: orderItems.map((item) => ({
             productId: item.productId,
             quantityOrdered: item.quantityOrdered,
@@ -288,6 +292,7 @@ export default function OrdersPage() {
       });
 
       setCustomerId("");
+      setNote("");
       setOrderItems([]);
       setPaymentStatus("pending");
       refetchOrders();
@@ -384,6 +389,7 @@ export default function OrdersPage() {
         setEditingOrder(data);
         setEditCustomerId(data.customer_id?.toString() || "");
         setEditPaymentStatus(data.status);
+        setEditNote(data.note || "");
         // Load order items for editing
         if (data.items) {
           setEditOrderItems(data.items.map((item: OrderItem) => ({
@@ -499,6 +505,7 @@ export default function OrdersPage() {
         body: JSON.stringify({ 
           status: editPaymentStatus,
           customerId: parseInt(editCustomerId),
+          note: editNote,
           items: editOrderItems.map((item) => ({
             productId: item.productId,
             quantityOrdered: item.quantityOrdered,
@@ -668,6 +675,17 @@ export default function OrdersPage() {
                     <SelectItem value="completed">จ่ายแล้ว</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              
+              <div className="space-y-2"> 
+                <Label>หมายเหตุ</Label>
+                <Input
+                  type="text" 
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="เพิ่มหมายเหตุ (ถ้ามี)"
+                  className="rounded-xl"
+                />
               </div>
 
               {/* Add Items */}
@@ -920,6 +938,7 @@ export default function OrdersPage() {
                         <TableHead className="text-right font-semibold">ยอดรวม</TableHead>
                         <TableHead className="text-right font-semibold">กำไร</TableHead>
                         <TableHead className="font-semibold">สถานะ</TableHead>
+                        <TableHead className="font-semibold">หมายเหตุ</TableHead>
                         <TableHead className="w-[120px] font-semibold">จัดการ</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -954,6 +973,7 @@ export default function OrdersPage() {
                               {getStatusText(order.status)}
                             </button>
                           </TableCell>
+                          <TableCell className="text-center max-w-[120px] truncate" >{order.note || "-"}</TableCell>
                           <TableCell>
                             <div className="flex gap-1">
                               <Button
@@ -1077,6 +1097,11 @@ export default function OrdersPage() {
                 </button>
               </div>
 
+              <div className="p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+                <span className="text-muted-foreground">หมายเหตุ</span>
+                <p>{selectedOrder.note || "-"}</p>
+              </div>
+
               <div className="border rounded-xl divide-y overflow-hidden">
                 {selectedOrder.items?.map((item, index) => (
                   <div key={index} className="flex justify-between items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-800/30">
@@ -1122,7 +1147,7 @@ export default function OrdersPage() {
       </Dialog>
 
       {/* Status Edit Dialog */}
-      <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
+      {/* <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
         <DialogContent className="rounded-2xl">
           <DialogHeader>
             <DialogTitle>แก้ไขสถานะการจ่ายเงิน</DialogTitle>
@@ -1156,7 +1181,7 @@ export default function OrdersPage() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
 
       {/* Edit Order Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -1191,6 +1216,16 @@ export default function OrdersPage() {
                     <SelectItem value="cancelled">ยกเลิก</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>หมายเหตุ</Label>
+                <Input
+                  type="text"
+                  value={editNote}
+                  onChange={(e) => setEditNote(e.target.value)}
+                  className="rounded-xl"
+                />
               </div>
             </div>
 

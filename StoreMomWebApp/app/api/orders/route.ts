@@ -22,6 +22,7 @@ export async function GET(request: Request) {
     if (status) {
       where.status = status;
     }
+  
     // Filter by product IDs - find orders that contain any of these products
     if (productIds) {
       const productIdArray = productIds.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
@@ -66,6 +67,7 @@ export async function GET(request: Request) {
       profit: order.profit instanceof Prisma.Decimal ? order.profit.toNumber() : Number(order.profit),
       orderDate: order.orderDate,
       status: order.status,
+      note: order.note || null,
       created_at: order.createdAt,
       updated_at: order.updatedAt
     }));
@@ -92,7 +94,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { customer_id, orderDate, items, status } = body;
+    const { customer_id, orderDate, items, status , note } = body;
 
     if (!customer_id || !items || items.length === 0) {
       return NextResponse.json(
@@ -136,7 +138,8 @@ export async function POST(request: Request) {
           totalAmount: totalAmount,
           profit: totalProfit,
           orderDate: orderDate ? new Date(orderDate) : new Date(),
-          status: status || 'pending'
+          status: status || 'pending',
+          note: note || null
         }
       });
 
@@ -190,6 +193,7 @@ export async function POST(request: Request) {
       profit: result.profit instanceof Prisma.Decimal ? result.profit.toNumber() : Number(result.profit),
       orderDate: result.orderDate,
       status: result.status,
+      note: result.note || null,
       created_at: result.createdAt,
       updated_at: result.updatedAt
     };

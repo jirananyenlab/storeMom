@@ -48,6 +48,7 @@ export async function GET(
       profit: order.profit instanceof Prisma.Decimal ? order.profit.toNumber() : Number(order.profit),
       orderDate: order.orderDate,
       status: order.status,
+      note: order.note || null,
       items: order.orderDetails.map(detail => {
         const priceEach = detail.priceEach instanceof Prisma.Decimal ? detail.priceEach.toNumber() : Number(detail.priceEach);
         const originalPrice = detail.product.price instanceof Prisma.Decimal ? detail.product.price.toNumber() : Number(detail.product.price);
@@ -141,7 +142,7 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { status, customerId, items } = body;
+    const { status, customerId, items, note } = body;
 
     // Get current order to check status
     const currentOrder = await prisma.order.findUnique({
@@ -234,13 +235,17 @@ export async function PUT(
         }
 
         // Build update data
-        const updateData: { status?: string; customerId?: number; totalAmount: number; profit: number } = {
+        const updateData: { status?: string; customerId?: number; note?: string; totalAmount: number; profit: number } = {
           totalAmount,
           profit: totalProfit
         };
 
         if (status && ['pending', 'completed', 'cancelled'].includes(status)) {
           updateData.status = status;
+        }
+
+        if (note !== undefined) {
+          updateData.note = note;
         }
 
         if (customerId) {
@@ -284,8 +289,8 @@ export async function PUT(
       return NextResponse.json(formattedOrder);
     }
 
-    // Simple update (status and/or customerId only)
-    const updateData: { status?: string; customerId?: number } = {};
+    // Simple update (status, customerId, and/or note only)
+    const updateData: { status?: string; customerId?: number; note?: string } = {};
 
     if (status) {
       if (!['pending', 'completed', 'cancelled'].includes(status)) {
@@ -295,6 +300,10 @@ export async function PUT(
         );
       }
       updateData.status = status;
+    }
+
+    if (note !== undefined) {
+      updateData.note = note;
     }
 
     if (customerId) {
