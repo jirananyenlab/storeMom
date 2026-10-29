@@ -1,23 +1,25 @@
-import { NextResponse } from 'next/server';
-import { Prisma } from '@prisma/client';
-import prisma from '@/lib/prisma';
+import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
+import prisma from "@/lib/prisma";
 
 // GET customers with pagination
 // Query params: page (default 1), limit (default 10), search (optional)
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get('search');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const search = searchParams.get("search");
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
     const skip = (page - 1) * limit;
 
-    const where = search ? {
-      OR: [
-        { fname: { contains: search } },
-        { lname: { contains: search } },
-      ],
-    } : undefined;
+    const where = search
+      ? {
+          OR: [
+            { fname: { contains: search } },
+            { lname: { contains: search } },
+          ],
+        }
+      : undefined;
 
     // Get total count and data in parallel
     const [total, customers] = await Promise.all([
@@ -25,7 +27,7 @@ export async function GET(request: Request) {
       prisma.customer.findMany({
         where,
         orderBy: {
-          createdAt: 'desc',
+          createdAt: "desc",
         },
         skip,
         take: limit,
@@ -42,10 +44,10 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error('Database error:', error);
+    console.error("Database error:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch customers' },
-      { status: 500 }
+      { error: "Failed to fetch customers" },
+      { status: 500 },
     );
   }
 }
@@ -58,8 +60,8 @@ export async function POST(request: Request) {
 
     if (!fname || !lname) {
       return NextResponse.json(
-        { error: 'First name and last name are required' },
-        { status: 400 }
+        { error: "First name and last name are required" },
+        { status: 400 },
       );
     }
 
@@ -77,7 +79,10 @@ export async function POST(request: Request) {
       });
     } catch (error: unknown) {
       // Backward-compatibility: some databases still miss optional customer columns.
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2022"
+      ) {
         customer = await prisma.customer.create({
           data: {
             fname,
@@ -91,10 +96,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json(customer, { status: 201 });
   } catch (error) {
-    console.error('Database error:', error);
+    console.error("Database error:", error);
     return NextResponse.json(
-      { error: 'Failed to create customer' },
-      { status: 500 }
+      { error: "Failed to create customer" },
+      { status: 500 },
     );
   }
 }

@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
 
 const productBaseSelect = {
   productId: true,
@@ -11,27 +11,29 @@ const productBaseSelect = {
 
 // Helper to convert Decimal to number
 function formatProduct(product: any) {
-  const price = typeof product.price === 'object' && product.price !== null 
-    ? Number(product.price.toString()) 
-    : Number(product.price);
-  
-  const sellPrice = product.sellPrice != null
-    ? (typeof product.sellPrice === 'object' 
-        ? Number(product.sellPrice.toString()) 
-        : Number(product.sellPrice))
-    : price; // Default to price if sellPrice is null
+  const price =
+    typeof product.price === "object" && product.price !== null
+      ? Number(product.price.toString())
+      : Number(product.price);
+
+  const sellPrice =
+    product.sellPrice != null
+      ? typeof product.sellPrice === "object"
+        ? Number(product.sellPrice.toString())
+        : Number(product.sellPrice)
+      : price; // Default to price if sellPrice is null
 
   return {
     ...product,
     price,
-    sellPrice
+    sellPrice,
   };
 }
 
 // GET single product
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -41,18 +43,15 @@ export async function GET(
     });
 
     if (!product) {
-      return NextResponse.json(
-        { error: 'Product not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
     return NextResponse.json(formatProduct(product));
   } catch (error) {
-    console.error('Database error:', error);
+    console.error("Database error:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch product' },
-      { status: 500 }
+      { error: "Failed to fetch product" },
+      { status: 500 },
     );
   }
 }
@@ -60,7 +59,7 @@ export async function GET(
 // PUT update product
 export async function PUT(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -69,8 +68,8 @@ export async function PUT(
 
     if (!productName || price === undefined) {
       return NextResponse.json(
-        { error: 'Product name and price are required' },
-        { status: 400 }
+        { error: "Product name and price are required" },
+        { status: 400 },
       );
     }
 
@@ -87,18 +86,15 @@ export async function PUT(
 
     return NextResponse.json(formatProduct(product));
   } catch (error: any) {
-    console.error('Database error:', error);
-    
-    if (error.code === 'P2025') {
-      return NextResponse.json(
-        { error: 'Product not found' },
-        { status: 404 }
-      );
+    console.error("Database error:", error);
+
+    if (error.code === "P2025") {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to update product' },
-      { status: 500 }
+      { error: "Failed to update product" },
+      { status: 500 },
     );
   }
 }
@@ -106,36 +102,33 @@ export async function PUT(
 // DELETE product
 export async function DELETE(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
-    
+
     await prisma.product.delete({
       where: { productId: parseInt(id) },
     });
 
-    return NextResponse.json({ message: 'Product deleted successfully' });
+    return NextResponse.json({ message: "Product deleted successfully" });
   } catch (error: any) {
-    console.error('Database error:', error);
-    
-    if (error.code === 'P2025') {
-      return NextResponse.json(
-        { error: 'Product not found' },
-        { status: 404 }
-      );
+    console.error("Database error:", error);
+
+    if (error.code === "P2025") {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    if (error.code === 'P2003') {
+    if (error.code === "P2003") {
       return NextResponse.json(
-        { error: 'Cannot delete product with existing orders' },
-        { status: 409 }
+        { error: "Cannot delete product with existing orders" },
+        { status: 409 },
       );
     }
 
     return NextResponse.json(
-      { error: 'Failed to delete product' },
-      { status: 500 }
+      { error: "Failed to delete product" },
+      { status: 500 },
     );
   }
 }

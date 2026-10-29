@@ -1,17 +1,17 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 // GET orders with pagination
 // Query params: page (default 1), limit (default 10), customerId (optional), status (optional), productIds (optional, comma-separated)
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const customerId = searchParams.get('customerId');
-    const status = searchParams.get('status');
-    const productIds = searchParams.get('productIds');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const customerId = searchParams.get("customerId");
+    const status = searchParams.get("status");
+    const productIds = searchParams.get("productIds");
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
     const skip = (page - 1) * limit;
 
     // Build where clause dynamically
@@ -22,17 +22,20 @@ export async function GET(request: Request) {
     if (status) {
       where.status = status;
     }
-  
+
     // Filter by product IDs - find orders that contain any of these products
     if (productIds) {
-      const productIdArray = productIds.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+      const productIdArray = productIds
+        .split(",")
+        .map((id) => parseInt(id.trim()))
+        .filter((id) => !isNaN(id));
       if (productIdArray.length > 0) {
         where.orderDetails = {
           some: {
             productId: {
-              in: productIdArray
-            }
-          }
+              in: productIdArray,
+            },
+          },
         };
       }
     }
@@ -46,12 +49,12 @@ export async function GET(request: Request) {
           customer: {
             select: {
               fname: true,
-              lname: true
-            }
-          }
+              lname: true,
+            },
+          },
         },
         orderBy: {
-          orderDate: 'desc'
+          orderDate: "desc",
         },
         skip,
         take: limit,
@@ -59,17 +62,23 @@ export async function GET(request: Request) {
     ]);
 
     // Format response to match expected structure
-    const formattedOrders = orders.map(order => ({
+    const formattedOrders = orders.map((order) => ({
       orderId: order.orderId,
       customer_id: order.customerId,
       customerName: `${order.customer.fname} ${order.customer.lname}`,
-      totalAmount: order.totalAmount instanceof Prisma.Decimal ? order.totalAmount.toNumber() : Number(order.totalAmount),
-      profit: order.profit instanceof Prisma.Decimal ? order.profit.toNumber() : Number(order.profit),
+      totalAmount:
+        order.totalAmount instanceof Prisma.Decimal
+          ? order.totalAmount.toNumber()
+          : Number(order.totalAmount),
+      profit:
+        order.profit instanceof Prisma.Decimal
+          ? order.profit.toNumber()
+          : Number(order.profit),
       orderDate: order.orderDate,
       status: order.status,
       note: order.note || null,
       created_at: order.createdAt,
-      updated_at: order.updatedAt
+      updated_at: order.updatedAt,
     }));
 
     return NextResponse.json({
@@ -82,10 +91,10 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error('Database error:', error);
+    console.error("Database error:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch orders' },
-      { status: 500 }
+      { error: "Failed to fetch orders" },
+      { status: 500 },
     );
   }
 }
@@ -94,12 +103,12 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { customer_id, orderDate, items, status , note } = body;
+    const { customer_id, orderDate, items, status, note } = body;
 
     if (!customer_id || !items || items.length === 0) {
       return NextResponse.json(
-        { error: 'Customer ID and order items are required' },
-        { status: 400 }
+        { error: "Customer ID and order items are required" },
+        { status: 400 },
       );
     }
 
@@ -111,21 +120,25 @@ export async function POST(request: Request) {
 
       for (const item of items) {
         const product = await tx.product.findUnique({
-          where: { productId: item.productId }
+          where: { productId: item.productId },
         });
 
         if (!product) {
           throw new Error(`Product ${item.productId} not found`);
         }
 
-        const productPrice = product.price instanceof Prisma.Decimal ? product.price.toNumber() : Number(product.price);
-        
+        const productPrice =
+          product.price instanceof Prisma.Decimal
+            ? product.price.toNumber()
+            : Number(product.price);
+
         if (product.quantityInStock < item.quantityOrdered) {
           throw new Error(`Insufficient stock for product ${item.productId}`);
         }
 
         const itemTotal = item.priceEach * item.quantityOrdered;
-        const itemProfit = (item.priceEach - productPrice) * item.quantityOrdered;
+        const itemProfit =
+          (item.priceEach - productPrice) * item.quantityOrdered;
 
         totalAmount += itemTotal;
         totalProfit += itemProfit;
@@ -140,20 +153,23 @@ export async function POST(request: Request) {
             totalAmount: totalAmount,
             profit: totalProfit,
             orderDate: orderDate ? new Date(orderDate) : new Date(),
-            status: status || 'pending',
-            note: note || null
-          }
+            status: status || "pending",
+            note: note || null,
+          },
         });
       } catch (error: unknown) {
         // Backward-compatibility: older schemas may not have status/note yet.
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2022"
+        ) {
           order = await tx.order.create({
             data: {
               customerId: customer_id,
               totalAmount: totalAmount,
               profit: totalProfit,
               orderDate: orderDate ? new Date(orderDate) : new Date(),
-            }
+            },
           });
         } else {
           throw error;
@@ -167,8 +183,8 @@ export async function POST(request: Request) {
             orderId: order.orderId,
             productId: item.productId,
             quantityOrdered: item.quantityOrdered,
-            priceEach: item.priceEach
-          }
+            priceEach: item.priceEach,
+          },
         });
 
         try {
@@ -176,21 +192,24 @@ export async function POST(request: Request) {
             where: { productId: item.productId },
             data: {
               quantityInStock: {
-                decrement: item.quantityOrdered
+                decrement: item.quantityOrdered,
               },
-              sellPrice: item.priceEach
-            }
+              sellPrice: item.priceEach,
+            },
           });
         } catch (error: unknown) {
           // Backward-compatibility: older product schema may not have sellPrice.
-          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
+          if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === "P2022"
+          ) {
             await tx.product.update({
               where: { productId: item.productId },
               data: {
                 quantityInStock: {
-                  decrement: item.quantityOrdered
+                  decrement: item.quantityOrdered,
                 },
-              }
+              },
             });
           } else {
             throw error;
@@ -210,17 +229,17 @@ export async function POST(request: Request) {
           customer: {
             select: {
               fname: true,
-              lname: true
-            }
-          }
-        }
+              lname: true,
+            },
+          },
+        },
       });
 
       return newOrder;
     });
 
     if (!result) {
-      throw new Error('Failed to create order');
+      throw new Error("Failed to create order");
     }
 
     // Format response
@@ -228,20 +247,33 @@ export async function POST(request: Request) {
       orderId: result.orderId,
       customer_id: result.customerId,
       customerName: `${result.customer.fname} ${result.customer.lname}`,
-      totalAmount: result.totalAmount instanceof Prisma.Decimal ? result.totalAmount.toNumber() : Number(result.totalAmount),
-      profit: result.profit instanceof Prisma.Decimal ? result.profit.toNumber() : Number(result.profit),
+      totalAmount:
+        result.totalAmount instanceof Prisma.Decimal
+          ? result.totalAmount.toNumber()
+          : Number(result.totalAmount),
+      profit:
+        result.profit instanceof Prisma.Decimal
+          ? result.profit.toNumber()
+          : Number(result.profit),
       orderDate: result.orderDate,
-      status: status || 'pending',
+      status: status || "pending",
       note: note || null,
     };
 
     return NextResponse.json(formattedOrder, { status: 201 });
   } catch (error) {
-    console.error('Database error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to create order';
+    console.error("Database error:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to create order";
     return NextResponse.json(
       { error: errorMessage },
-      { status: errorMessage.includes('not found') ? 404 : errorMessage.includes('Insufficient') ? 400 : 500 }
+      {
+        status: errorMessage.includes("not found")
+          ? 404
+          : errorMessage.includes("Insufficient")
+            ? 400
+            : 500,
+      },
     );
   }
 }

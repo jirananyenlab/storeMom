@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
 
 const productBaseSelect = {
   productId: true,
@@ -11,20 +11,22 @@ const productBaseSelect = {
 
 // Helper to convert Decimal to number
 function formatProduct(product: any) {
-  const price = typeof product.price === 'object' && product.price !== null 
-    ? Number(product.price.toString()) 
-    : Number(product.price);
-  
-  const sellPrice = product.sellPrice != null
-    ? (typeof product.sellPrice === 'object' 
-        ? Number(product.sellPrice.toString()) 
-        : Number(product.sellPrice))
-    : price; // Default to price if sellPrice is null
+  const price =
+    typeof product.price === "object" && product.price !== null
+      ? Number(product.price.toString())
+      : Number(product.price);
+
+  const sellPrice =
+    product.sellPrice != null
+      ? typeof product.sellPrice === "object"
+        ? Number(product.sellPrice.toString())
+        : Number(product.sellPrice)
+      : price; // Default to price if sellPrice is null
 
   return {
     ...product,
     price,
-    sellPrice
+    sellPrice,
   };
 }
 
@@ -33,14 +35,16 @@ function formatProduct(product: any) {
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get('search');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const search = searchParams.get("search");
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
     const skip = (page - 1) * limit;
 
-    const where = search ? {
-      productName: { contains: search },
-    } : undefined;
+    const where = search
+      ? {
+          productName: { contains: search },
+        }
+      : undefined;
 
     // Get total count and data in parallel
     const [total, products] = await Promise.all([
@@ -49,7 +53,7 @@ export async function GET(request: Request) {
         where,
         select: productBaseSelect,
         orderBy: {
-          productName: 'asc',
+          productName: "asc",
         },
         skip,
         take: limit,
@@ -69,10 +73,10 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error('Database error:', error);
+    console.error("Database error:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch products' },
-      { status: 500 }
+      { error: "Failed to fetch products" },
+      { status: 500 },
     );
   }
 }
@@ -85,8 +89,8 @@ export async function POST(request: Request) {
 
     if (!productName || price === undefined) {
       return NextResponse.json(
-        { error: 'Product name and price are required' },
-        { status: 400 }
+        { error: "Product name and price are required" },
+        { status: 400 },
       );
     }
 
@@ -102,10 +106,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json(formatProduct(product), { status: 201 });
   } catch (error) {
-    console.error('Database error:', error);
+    console.error("Database error:", error);
     return NextResponse.json(
-      { error: 'Failed to create product' },
-      { status: 500 }
+      { error: "Failed to create product" },
+      { status: 500 },
     );
   }
 }
