@@ -31,7 +31,6 @@ CREATE TABLE product (
   price DECIMAL(10,2) NOT NULL,
   sellPrice DECIMAL(10,2) DEFAULT NULL,
   volume VARCHAR(45),
-  description TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_product_name (productName)

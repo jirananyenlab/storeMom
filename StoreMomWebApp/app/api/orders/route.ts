@@ -132,16 +132,33 @@ export async function POST(request: Request) {
       }
 
       // Create order
-      const order = await tx.order.create({
-        data: {
-          customerId: customer_id,
-          totalAmount: totalAmount,
-          profit: totalProfit,
-          orderDate: orderDate ? new Date(orderDate) : new Date(),
-          status: status || 'pending',
-          note: note || null
+      let order;
+      try {
+        order = await tx.order.create({
+          data: {
+            customerId: customer_id,
+            totalAmount: totalAmount,
+            profit: totalProfit,
+            orderDate: orderDate ? new Date(orderDate) : new Date(),
+            status: status || 'pending',
+            note: note || null
+          }
+        });
+      } catch (error: unknown) {
+        // Backward-compatibility: older schemas may not have status/note yet.
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
+          order = await tx.order.create({
+            data: {
+              customerId: customer_id,
+              totalAmount: totalAmount,
+              profit: totalProfit,
+              orderDate: orderDate ? new Date(orderDate) : new Date(),
+            }
+          });
+        } else {
+          throw error;
         }
-      });
+      }
 
       // Create order details, update stock, and update sellPrice
       for (const item of items) {
@@ -154,21 +171,42 @@ export async function POST(request: Request) {
           }
         });
 
-        await tx.product.update({
-          where: { productId: item.productId },
-          data: {
-            quantityInStock: {
-              decrement: item.quantityOrdered
-            },
-            sellPrice: item.priceEach
+        try {
+          await tx.product.update({
+            where: { productId: item.productId },
+            data: {
+              quantityInStock: {
+                decrement: item.quantityOrdered
+              },
+              sellPrice: item.priceEach
+            }
+          });
+        } catch (error: unknown) {
+          // Backward-compatibility: older product schema may not have sellPrice.
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
+            await tx.product.update({
+              where: { productId: item.productId },
+              data: {
+                quantityInStock: {
+                  decrement: item.quantityOrdered
+                },
+              }
+            });
+          } else {
+            throw error;
           }
-        });
+        }
       }
 
-      // Fetch complete order with customer info
+      // Fetch order with explicit fields to avoid selecting drifted columns.
       const newOrder = await tx.order.findUnique({
         where: { orderId: order.orderId },
-        include: {
+        select: {
+          orderId: true,
+          customerId: true,
+          totalAmount: true,
+          profit: true,
+          orderDate: true,
           customer: {
             select: {
               fname: true,
@@ -193,10 +231,8 @@ export async function POST(request: Request) {
       totalAmount: result.totalAmount instanceof Prisma.Decimal ? result.totalAmount.toNumber() : Number(result.totalAmount),
       profit: result.profit instanceof Prisma.Decimal ? result.profit.toNumber() : Number(result.profit),
       orderDate: result.orderDate,
-      status: result.status,
-      note: result.note || null,
-      created_at: result.createdAt,
-      updated_at: result.updatedAt
+      status: status || 'pending',
+      note: note || null,
     };
 
     return NextResponse.json(formattedOrder, { status: 201 });

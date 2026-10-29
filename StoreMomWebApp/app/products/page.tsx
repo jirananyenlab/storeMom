@@ -53,7 +53,6 @@ interface Product {
   quantityInStock: number;
   price: number;
   volume?: string | null;
-  description?: string | null;
 }
 
 interface ProductFormDataRaw {
@@ -61,7 +60,6 @@ interface ProductFormDataRaw {
   quantityInStock: string;
   price: string;
   volume: string;
-  description: string;
 }
 
 const initialFormData: ProductFormDataRaw = {
@@ -69,7 +67,6 @@ const initialFormData: ProductFormDataRaw = {
   quantityInStock: "0",
   price: "",
   volume: "",
-  description: "",
 };
 
 export default function ProductsPage() {
@@ -151,8 +148,7 @@ export default function ProductsPage() {
       productName: formData.productName,
       quantityInStock: parseInt(formData.quantityInStock) || 0,
       price: parseFloat(formData.price) || 0,
-      volume: formData.volume,
-      description: formData.description || null,
+      volume: formData.volume || null,
     };
 
     const validation = validateForm(productSchema, dataToValidate);
@@ -214,7 +210,6 @@ export default function ProductsPage() {
       quantityInStock: product.quantityInStock.toString(),
       price: product.price.toString(),
       volume: product.volume || "",
-      description: product.description || "",
     });
     setEditFormErrors({});
     setIsEditDialogOpen(true);
@@ -228,8 +223,7 @@ export default function ProductsPage() {
       productName: editFormData.productName,
       quantityInStock: parseInt(editFormData.quantityInStock) || 0,
       price: parseFloat(editFormData.price) || 0,
-      volume: editFormData.volume,
-      description: editFormData.description || null,
+      volume: editFormData.volume || null,
     };
 
     const validation = validateForm(productSchema, dataToValidate);
@@ -416,7 +410,7 @@ export default function ProductsPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="volume">
-                  หน่วย/ปริมาตร <span className="text-destructive">*</span>
+                  หน่วย/ปริมาตร (ไม่บังคับ)
                 </Label>
                 <Input
                   id="volume"
@@ -434,18 +428,6 @@ export default function ProductsPage() {
                     {formErrors.volume}
                   </p>
                 )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">รายละเอียด</Label>
-                <Input
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  className="rounded-xl border-gray-200 dark:border-gray-800 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                />
               </div>
 
               <Button
@@ -696,16 +678,6 @@ export default function ProductsPage() {
                     </span>
                   )}
                 </div>
-                {selectedProduct.description && (
-                  <div className="pt-3 border-t">
-                    <span className="text-muted-foreground text-sm">
-                      รายละเอียด
-                    </span>
-                    <p className="mt-1 font-medium">
-                      {selectedProduct.description}
-                    </p>
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -818,7 +790,7 @@ export default function ProductsPage() {
 
             <div className="space-y-2">
               <Label htmlFor="edit-volume">
-                หน่วย/ปริมาตร <span className="text-destructive">*</span>
+                หน่วย/ปริมาตร (ไม่บังคับ)
               </Label>
               <Input
                 id="edit-volume"
@@ -838,20 +810,6 @@ export default function ProductsPage() {
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-description">รายละเอียด</Label>
-              <Input
-                id="edit-description"
-                value={editFormData.description}
-                onChange={(e) =>
-                  setEditFormData({
-                    ...editFormData,
-                    description: e.target.value,
-                  })
-                }
-                className="rounded-xl"
-              />
-            </div>
           </div>
           <DialogFooter>
             <Button

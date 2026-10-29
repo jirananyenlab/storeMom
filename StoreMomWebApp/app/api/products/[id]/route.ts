@@ -1,6 +1,14 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
+const productBaseSelect = {
+  productId: true,
+  productName: true,
+  quantityInStock: true,
+  price: true,
+  volume: true,
+} as const;
+
 // Helper to convert Decimal to number
 function formatProduct(product: any) {
   const price = typeof product.price === 'object' && product.price !== null 
@@ -29,6 +37,7 @@ export async function GET(
     const { id } = await params;
     const product = await prisma.product.findUnique({
       where: { productId: parseInt(id) },
+      select: productBaseSelect,
     });
 
     if (!product) {
@@ -56,7 +65,7 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { productName, quantityInStock, price, volume, description } = body;
+    const { productName, quantityInStock, price, volume } = body;
 
     if (!productName || price === undefined) {
       return NextResponse.json(
@@ -72,8 +81,8 @@ export async function PUT(
         quantityInStock: quantityInStock || 0,
         price,
         volume: volume || null,
-        description: description || null,
       },
+      select: productBaseSelect,
     });
 
     return NextResponse.json(formatProduct(product));

@@ -63,16 +63,6 @@ DEALLOCATE PREPARE stmt;
 ALTER TABLE product 
   MODIFY COLUMN price DECIMAL(10,2) NOT NULL;
 
--- Safely add new columns to product table
-SET @column_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
-  WHERE TABLE_SCHEMA = 'storemom' AND TABLE_NAME = 'product' AND COLUMN_NAME = 'description');
-SET @sql = IF(@column_exists = 0, 
-  'ALTER TABLE product ADD COLUMN description TEXT NULL AFTER volume', 
-  'SELECT "Column description already exists" AS message');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
 SET @column_exists = (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
   WHERE TABLE_SCHEMA = 'storemom' AND TABLE_NAME = 'product' AND COLUMN_NAME = 'created_at');
 SET @sql = IF(@column_exists = 0, 

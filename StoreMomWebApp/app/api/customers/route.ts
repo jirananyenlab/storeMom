@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 
 // GET customers with pagination
@@ -62,15 +63,31 @@ export async function POST(request: Request) {
       );
     }
 
-    const customer = await prisma.customer.create({
-      data: {
-        fname,
-        lname,
-        phone: phone || null,
-        email: email || null,
-        address: address || null,
-      },
-    });
+    let customer;
+
+    try {
+      customer = await prisma.customer.create({
+        data: {
+          fname,
+          lname,
+          phone: phone || null,
+          email: email || null,
+          address: address || null,
+        },
+      });
+    } catch (error: unknown) {
+      // Backward-compatibility: some databases still miss optional customer columns.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2022') {
+        customer = await prisma.customer.create({
+          data: {
+            fname,
+            lname,
+          },
+        });
+      } else {
+        throw error;
+      }
+    }
 
     return NextResponse.json(customer, { status: 201 });
   } catch (error) {

@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
 }
 
 model Customer {
@@ -32,7 +32,6 @@ model Product {
   price           Decimal  @db.Decimal(10, 2)
   sellPrice       Decimal? @db.Decimal(10, 2)
   volume          String?  @db.VarChar(45)
-  description     String?  @db.Text
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
   

@@ -21,11 +21,7 @@ export const customerSchema = z.object({
     .optional()
     .nullable()
     .or(z.literal("")),
-  address: z
-    .string()
-    .optional()
-    .nullable()
-    .or(z.literal("")),
+  address: z.string().optional().nullable().or(z.literal("")),
 });
 
 export type CustomerFormData = z.infer<typeof customerSchema>;
@@ -40,15 +36,10 @@ export const productSchema = z.object({
     .number()
     .int("จำนวนต้องเป็นจำนวนเต็ม")
     .min(0, "จำนวนต้องไม่ติดลบ"),
-  price: z
-    .number()
-    .min(0, "ราคาต้องไม่ติดลบ"),
+  price: z.number().min(0, "ราคาต้องไม่ติดลบ"),
   volume: z
     .string()
-    .min(1, "กรุณากรอกหน่วย/ปริมาตร")
-    .max(45, "หน่วยต้องไม่เกิน 45 ตัวอักษร"),
-  description: z
-    .string()
+    .max(45, "หน่วยต้องไม่เกิน 45 ตัวอักษร")
     .optional()
     .nullable()
     .or(z.literal("")),
@@ -63,9 +54,7 @@ export const orderItemSchema = z.object({
     .number()
     .int("จำนวนต้องเป็นจำนวนเต็ม")
     .positive("จำนวนต้องมากกว่า 0"),
-  priceEach: z
-    .number()
-    .positive("ราคาต้องมากกว่า 0"),
+  priceEach: z.number().positive("ราคาต้องมากกว่า 0"),
 });
 
 export type OrderItemFormData = z.infer<typeof orderItemSchema>;
@@ -74,9 +63,7 @@ export type OrderItemFormData = z.infer<typeof orderItemSchema>;
 export const orderSchema = z.object({
   customer_id: z.number().int().positive("กรุณาเลือกลูกค้า"),
   orderDate: z.date().optional(),
-  items: z
-    .array(orderItemSchema)
-    .min(1, "กรุณาเพิ่มสินค้าอย่างน้อย 1 รายการ"),
+  items: z.array(orderItemSchema).min(1, "กรุณาเพิ่มสินค้าอย่างน้อย 1 รายการ"),
 });
 
 export type OrderFormData = z.infer<typeof orderSchema>;
@@ -84,14 +71,16 @@ export type OrderFormData = z.infer<typeof orderSchema>;
 // Validation helper function
 export function validateForm<T>(
   schema: z.ZodSchema<T>,
-  data: unknown
-): { success: true; data: T } | { success: false; errors: Record<string, string> } {
+  data: unknown,
+):
+  | { success: true; data: T }
+  | { success: false; errors: Record<string, string> } {
   const result = schema.safeParse(data);
-  
+
   if (result.success) {
     return { success: true, data: result.data };
   }
-  
+
   const errors: Record<string, string> = {};
   const issues = result.error.issues;
   issues.forEach((issue) => {
@@ -100,6 +89,6 @@ export function validateForm<T>(
       errors[path] = issue.message;
     }
   });
-  
+
   return { success: false, errors };
 }
